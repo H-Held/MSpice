@@ -12,7 +12,7 @@ pass in CI on Windows and Linux. Design background: [design](design/2026-11-27-m
 | 3 Engine | Live progress (`--progress=json`), multi-core sweeps and Monte Carlo, fault injection (open, short, tolerance), SPICE netlist import, speed work carried over from csim (Newton, predictor, step control, pattern cache) | Benchmarks recorded per release; import lists every unsupported construct |
 | 4 Integration API | Stable C API, JSON-RPC over stdio, read-only KiCad import with sidecar file | API tests; KiCad files unchanged after every test (hash check) |
 | 5 Trust | Quality level per model, mandatory reference curves in CI, Ed25519 signatures, vendor keys | Tampered model is rejected in a negative test |
-| 6 Studio | Native GUI (Dear ImGui), waveform viewer, library editor | - |
+| 6 Studio | Standalone GUI in its own repository `mspice-studio` (Rust): waveform viewer, library editor, test runner | - |
 | 7 SIL / HIL | Firmware co-simulation through emulators running as separate processes (open protocol), hardware-in-the-loop over USB/serial | - |
 | 8 Microcontrollers | ESP32, AVR, STM32 peripheral models | - |
 | 9 Converter | Separate tool: LTspice schematic/model files to and from the library format, only for openly licensed, unencrypted input | - |

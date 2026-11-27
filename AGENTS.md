@@ -40,3 +40,38 @@ continue after an interruption.
 
 Run the full test suite of every component you touched and quote the summary
 line. State what was not verified (for example: Linux build only in CI).
+
+## Rust (branch `rust`, later all branches)
+
+The project is moving from C++ to Rust ([docs/RUST_MIGRATION.md](docs/RUST_MIGRATION.md)).
+Until phase R4, `engine/` (C++) is the reference implementation: change it
+only to fix bugs that affect the golden data, never to add features.
+
+Workspace layout:
+
+| Crate | Content |
+|---|---|
+| `mspice-core` | circuit, MNA, solvers, devices, transient engine |
+| `mspice-spice` | SPICE lexer, parser, expressions, import |
+| `mspice-cli` | binary `mspice` |
+| `mspice-libformat` | library data model, TOML loading, validation |
+| `mspice-libcheck` | binary `mspice-libcheck` |
+
+Rules:
+
+- Before every commit: `cargo fmt --check`, `cargo clippy --all-targets --
+  -D warnings`, `cargo test --workspace`, `cargo deny check`.
+- No `unsafe` outside clearly marked modules (solver kernels, C ABI); each
+  `unsafe` block has a `// SAFETY:` comment.
+- No panics on user input: parsers return errors with the stable diagnostic
+  codes (`E0001`...), never `unwrap()` on data from files or the network.
+- Errors carry file, line and column; every code has an `explain` text and a
+  negative test.
+- Numerics: no change of floating-point evaluation order in hot paths without
+  comparing against the golden data; tolerances come from the original tests.
+- Performance claims need a benchmark (median of at least 5 runs, release
+  build, same machine as the reference) recorded in the pull request.
+- Public API: documented with rustdoc examples that run as doc tests; the C
+  ABI and JSON-RPC API follow [docs/VERSIONING.md](docs/VERSIONING.md).
+- Dependencies: only licences allowed in `deny.toml`; each new crate is added
+  to THIRD_PARTY.md with its licence.

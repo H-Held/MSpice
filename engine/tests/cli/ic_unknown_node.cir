@@ -1,0 +1,6 @@
+* .ic on a node that does not exist
+V1 a 0 1
+R1 a 0 1k
+.ic v(x)=1
+.tran 1u 1m
+.end

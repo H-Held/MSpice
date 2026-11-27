@@ -6,13 +6,15 @@
  *
  * Positive tests compare simulated waveforms with analytic solutions; negative tests check
  * the exit code and the exact text on standard error. Argument: the directory with the test
- * netlists (tests/cli). Netlists written by this test go to the working directory.
+ * netlists (tests/cli). Netlists written by this test go to a scratch directory below the
+ * build tree (MSPICE_TEST_SCRATCH_DIR) and are removed at the end.
  */
 #include <cli.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <sstream>
@@ -49,10 +51,14 @@ Run cli(const std::vector<std::string> &args) {
     return r;
 }
 
-/** @brief Write @p text to @p path (working directory) and return the path. */
+/** @brief Files written by write(), removed at the end. */
+std::vector<std::string> written;
+
+/** @brief Write @p text to @p path (relative to the scratch directory) and return the path. */
 std::string write(const std::string &path, const std::string &text) {
     std::ofstream f(path, std::ios::binary);
     f << text;
+    written.push_back(path);
     return path;
 }
 
@@ -225,6 +231,45 @@ void negative_inline() {
                  "cli_value.cir:3: error: c1: value missing\n");
     expect_error("missing file", cli({"run", "cli_does_not_exist.cir"}), 1,
                  "mspice: error: cannot read 'cli_does_not_exist.cir'\n");
+    expect_error(".ic unknown node",
+                 cli({"run", net("cli_ic_unknown.cir",
+                                 "V1 a 0 1\nR1 a 0 1k\n.ic v(x)=1\n.tran 1u 1m\n")}),
+                 1, "cli_ic_unknown.cir:4: error: .ic: unknown node 'x'\n");
+    expect_error("floating node behind a current source",
+                 cli({"run", net("cli_float_i.cir", "I1 0 x 1m\nR1 y 0 1k\n.tran 1u 1m\n")}), 1,
+                 "cli_float_i.cir:2: error: node 'x' has no DC path to ground (floating)\n");
+    expect_error("floating island",
+                 cli({"run", net("cli_float_island.cir",
+                                 "V1 a 0 1\nR1 a 0 1k\nR2 p q 1k\nR3 q r 1k\n.tran 1u 1m\n")}),
+                 1,
+                 "cli_float_island.cir:4: error: nodes 'p', 'q', 'r' have no DC path to ground "
+                 "(floating)\n");
+    expect_error("floating MOSFET gate",
+                 cli({"run", net("cli_float_gate.cir",
+                                 "V1 d 0 5\nR1 d dd 1k\nM1 dd g 0 0 NM\n"
+                                 ".model NM NMOS(kp=1m vto=1)\n.tran 1u 1m\n")}),
+                 1, "cli_float_gate.cir:4: error: node 'g' has no DC path to ground (floating)\n");
+}
+
+void positive_ic() {
+    // Capacitor charged to 1 V by .ic and discharged through 1k (uic): v = exp(-t / 1 ms).
+    const std::string net = write("cli_ic.cir", "* ic\nR1 out 0 1k\nC1 out 0 1u\n"
+                                                ".ic v(out)=1\n.tran 10u 3m uic\n");
+    const Run r = cli({"run", net});
+    expect(r.code == 0 && r.err.empty(), ".ic: exit code 0, got " + std::to_string(r.code) + " " +
+                                             r.err);
+    if (r.code != 0)
+        return;
+    const Table t = parse_csv(r.out);
+    double worst = 0;
+    for (double time : {0.0, 0.5e-3, 1e-3, 2e-3, 3e-3})
+        worst = std::max(worst, std::abs(t.at("v(out)", time) - std::exp(-time / 1e-3)));
+    std::printf(".ic: worst |v(out) - exp(-t/RC)| = %.3g V\n", worst);
+    expect(worst < 1e-3, ".ic: v(out) within 1 mV of exp(-t/RC)");
+    // A capacitor-only node is not floating: the engine solves it.
+    const Run c = cli({"run", write("cli_cap_only.cir", "* c\nV1 in 0 1\nC1 in mid 1u\n"
+                                                         "C2 mid 0 1u\n.tran 10u 100u\n")});
+    expect(c.code == 0 && c.err.empty(), "capacitor-only node accepted: " + c.err);
 }
 
 void usage() {
@@ -245,12 +290,23 @@ void usage() {
 } // namespace
 
 int main(int argc, char **argv) {
-    const std::string dir = argc > 1 ? argv[1] : "tests/cli";
+    namespace fs = std::filesystem;
+    const std::string dir = fs::absolute(argc > 1 ? argv[1] : "tests/cli").string();
+#ifdef MSPICE_TEST_SCRATCH_DIR
+    const fs::path scratch = MSPICE_TEST_SCRATCH_DIR;
+#else
+    const fs::path scratch = fs::temp_directory_path() / "mspice_cli_test";
+#endif
+    fs::create_directories(scratch);
+    fs::current_path(scratch);
     positive_rc(dir);
     positive_sources();
+    positive_ic();
     negative_files(dir);
     negative_inline();
     usage();
+    for (const std::string &f : written)
+        fs::remove(f);
     std::printf("cli: %d checks, %d failures\n", checks, failures);
     return failures == 0 ? 0 : 1;
 }

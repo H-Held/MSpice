@@ -133,6 +133,9 @@ time,v(in),v(out),i(v1)
   `.end`.
 - Without `uic` a DC operating point is computed first; with `uic` the transient starts
   from 0 V or from the `.ic` values.
+- `.ic` on a node that no element uses is an error. Nodes without any DC path to ground
+  (for example only a current source or a MOSFET gate attached) are reported by name
+  before the run instead of a singular matrix.
 
 Anything else (for example `K`, `J`, `T`, `.ac`, `.dc`, `i(...)` inside expressions, model
 parameters the engine does not implement) is reported as an error with file, line and

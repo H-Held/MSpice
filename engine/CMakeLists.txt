@@ -160,6 +160,9 @@ if(MSPICE_BUILD_TESTS)
 
   # Command line: in-process tests (exact messages, analytic results) ...
   mspice_test(mspice_cli_test tests/cli_test.cpp mspice_cli_lib)
+  # Netlists written by the test go below the build tree, never into the source tree.
+  target_compile_definitions(mspice_cli_test PRIVATE
+                             MSPICE_TEST_SCRATCH_DIR="${CMAKE_CURRENT_BINARY_DIR}/cli_scratch")
   add_test(NAME cli_in_process COMMAND mspice_cli_test "${PROJECT_SOURCE_DIR}/tests/cli")
   # ... and the real binary: exit code, exact standard error, CSV header.
   set(_cli_cases
@@ -168,7 +171,9 @@ if(MSPICE_BUILD_TESTS)
       "malformed_paren|1|malformed_paren.cir:2: error: v1: missing ')' after pulse("
       "unknown_element|1|unknown_element.cir:3: error: z1: element type not supported"
       "missing_node|1|missing_node.cir:3: error: r1: too few nodes (2 expected)"
-      "invalid_number|1|invalid_number.cir:3: error: r1: invalid number '1x2k'")
+      "invalid_number|1|invalid_number.cir:3: error: r1: invalid number '1x2k'"
+      "ic_unknown_node|1|ic_unknown_node.cir:4: error: .ic: unknown node 'x'"
+      "floating_node|1|floating_node.cir:4: error: node 'x' has no DC path to ground (floating)")
   foreach(_case IN LISTS _cli_cases)
     string(REPLACE "|" ";" _parts "${_case}")
     list(GET _parts 0 _name)

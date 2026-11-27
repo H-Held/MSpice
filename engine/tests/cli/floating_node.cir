@@ -1,0 +1,6 @@
+* Node x is only driven by a current source
+V1 a 0 1
+R1 a 0 1k
+I1 0 x 1m
+.tran 1u 1m
+.end

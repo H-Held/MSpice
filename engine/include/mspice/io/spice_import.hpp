@@ -8,7 +8,9 @@
  * NMOS/PMOS), S (voltage-controlled switch), B (V= or I= expression), E and G (linear gain or
  * value expression). Supported directives: .tran, .options (reltol, abstol, method), .ic.
  * Everything else is rejected with an ImportError that names file, line and element:
- * unsupported input is never dropped silently.
+ * unsupported input is never dropped silently. Nets without any DC path to ground (only
+ * current sources, MOSFET gates or controlled-source inputs attached) are reported by
+ * name before the run, instead of a singular matrix.
  */
 #pragma once
 

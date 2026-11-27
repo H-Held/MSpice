@@ -83,8 +83,11 @@ class Importer {
     Simulation run() {
         check_report();
         directives();
-        for (const FlatElement &e : n_.elements)
+        for (const FlatElement &e : n_.elements) {
             element(e);
+            connect(e);
+        }
+        check_floating();
         apply_initial_conditions();
         sim_.start = tran_.start;
         return std::move(sim_);
@@ -96,6 +99,88 @@ class Importer {
     Simulation sim_;
     Tran tran_;
     std::vector<std::pair<std::string, std::pair<double, SourceLoc>>> ic_;
+    std::map<std::string, std::string> parent_; ///< Union-find over nets joined by a DC path.
+    std::map<std::string, SourceLoc> first_use_; ///< First element line that uses a net.
+    std::vector<std::string> net_order_;         ///< Nets in order of first use.
+
+    /** @brief Ground names as the circuit treats them. */
+    static bool is_ground(const std::string &n) { return n == "0" || n == "gnd"; }
+    /** @brief Union-find root of net @p n (ground nets map to "0"). */
+    std::string root(const std::string &n) {
+        std::string r = is_ground(n) ? std::string("0") : n;
+        while (parent_.count(r) && parent_[r] != r)
+            r = parent_[r];
+        return r;
+    }
+    /** @brief Join the nets @p a and @p b. */
+    void join(const std::string &a, const std::string &b) {
+        const std::string ra = root(a), rb = root(b);
+        if (ra == rb)
+            return;
+        // Keep ground as the root of its set.
+        if (rb == "0")
+            parent_[ra] = rb;
+        else
+            parent_[rb] = ra;
+    }
+
+    /** @brief Record the nets of element @p e and the DC paths it provides. Current sources,
+     *  the MOSFET gate and the control inputs of E/G/S provide none; everything else is
+     *  treated as connecting its terminals (capacitors included: the engine solves the
+     *  operating point with them). */
+    void connect(const FlatElement &e) {
+        for (const std::string &n : e.nodes) {
+            if (is_ground(n))
+                continue;
+            if (!parent_.count(n)) {
+                parent_[n] = n;
+                net_order_.push_back(n);
+                first_use_[n] = e.loc;
+            }
+        }
+        switch (e.type) {
+        case 'i':
+            return;
+        case 'm':
+            join(e.nodes[0], e.nodes[2]); // drain-source; gate and bulk carry no DC current
+            return;
+        case 'q':
+            join(e.nodes[0], e.nodes[1]);
+            join(e.nodes[1], e.nodes[2]);
+            return;
+        default:
+            // Two-terminal elements and the outputs of S, E, G, B (controls are not paths).
+            if (e.nodes.size() >= 2)
+                join(e.nodes[0], e.nodes[1]);
+        }
+    }
+
+    /** @brief Nets without any DC path to ground make the MNA matrix singular: name them. */
+    void check_floating() {
+        std::map<std::string, std::vector<std::string>> groups;
+        std::vector<std::string> order;
+        for (const std::string &n : net_order_) {
+            const std::string r = root(n);
+            if (r == "0")
+                continue;
+            if (!groups.count(r))
+                order.push_back(r);
+            groups[r].push_back(n);
+        }
+        std::vector<Diagnostic> errors;
+        for (const std::string &r : order) {
+            const std::vector<std::string> &g = groups[r];
+            std::string names;
+            for (const std::string &n : g)
+                names += (names.empty() ? "'" : ", '") + n + "'";
+            const SourceLoc &loc = first_use_[g.front()];
+            errors.push_back({loc.file, loc.line,
+                              (g.size() == 1 ? "node " + names + " has" : "nodes " + names + " have") +
+                                  " no DC path to ground (floating)"});
+        }
+        if (!errors.empty())
+            throw ImportError(std::move(errors));
+    }
 
     /** @brief Every `unsupported` report entry becomes one diagnostic. */
     void check_report() {
@@ -220,6 +305,8 @@ class Importer {
 
     void apply_initial_conditions() {
         for (const auto &[net, value] : ic_) {
+            if (!is_ground(net) && !parent_.count(net))
+                fail(value.second, ".ic: unknown node '" + net + "'");
             try {
                 sim_.circuit.initial_voltage(net, value.first);
             } catch (const std::invalid_argument &e) {

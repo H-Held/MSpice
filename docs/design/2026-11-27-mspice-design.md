@@ -28,11 +28,11 @@ for it.
 
 ## Goals
 
-1. Engine (`engine/`): C++20 simulator core and command line tool `mspice`.
+1. Engine (`engine/`, later `crates/`): simulator core and command line tool `mspice`.
 2. Library (`library/`): an open part library format, a validator with good
    error messages, generic standard parts, configurable loads (consumers), and
    guides for creating parts.
-3. Studio (`studio/`): a separate, modern GUI (later; native, not Python).
+3. Studio (`studio/`): a separate, modern GUI (later; native Rust, not Python).
 4. Tests everywhere: every feature has positive tests (valid input, expected
    result) and negative tests (invalid input, exact expected error).
 5. Documentation that a newcomer can follow without asking.
@@ -90,10 +90,12 @@ the library validator does not depend on the engine.
 
 ## Key decisions
 
-- Language: C++20 for engine and tools. Rust was considered; speed would be
-  the same, and the tested engine would have to be rewritten. New standalone
-  tools may use Rust later if there is a reason.
-- Build: CMake + Ninja; Windows (MinGW-w64 UCRT / MSVC) and Linux (GCC, Clang).
+- Language: Rust (decision 2026-11-27, replaces the earlier choice of C++20).
+  The engine taken over from csim is C++ and serves as the reference until
+  the Rust rewrite reaches the same results and speed
+  ([RUST_MIGRATION.md](../RUST_MIGRATION.md)). Reasons: one build tool on all
+  platforms, memory safety for parsers of untrusted input, WebAssembly.
+- Build: cargo (target); CMake + Ninja for the C++ reference until it is removed.
 - Library format: TOML with a published schema. Readable by people and
   language models, unambiguous to validate.
 - Error messages: every diagnostic has a stable code (e.g. `E0412`), a one-line

@@ -217,44 +217,57 @@ waveform at the failing time.
   edit and is listed in the chat; destructive actions ask for confirmation.
 - Works without any AI configured; the chat is optional.
 
-## 9a. Live activity: what the user does, seen by the AI
+## 9a. Watch mode: the user watches the AI work
 
-Goal: the AI can follow what the user does (clicking parts, moving and
-rotating them, routing, editing values), comment on it when asked, and all of
-it can be logged.
+Goal: when the AI edits the design, the user sees every step live in the
+editor, can follow, pause, stop and undo it.
+
+- **Every AI action is a normal KiCad edit** through the IPC API, one undoable
+  commit per step, marked as made by the AI.
+- **Follow view:** the editor pans and zooms to the item the AI is working on;
+  changed items are highlighted for a moment; routes are drawn segment by
+  segment.
+- **Narration:** the chat shows one line per step ("Moving U3 next to L1 to
+  shorten the switching loop"), linked to the item; clicking the line selects
+  the item.
+- **Controls:** speed (live, slowed down, step by step with a confirm click per
+  step), pause, stop, "undo all AI steps since ...".
+- **Before/after:** a render of the affected area before and after a group of
+  steps (section 2, rendering), shown in the chat.
+- **Limits:** the AI works inside an area or a list of nets the user allows;
+  locked items and anything outside are refused by `mspice-kicad`.
+
+## 9b. Activity stream and log (both directions)
+
+The same event stream serves watch mode, logging and the reverse direction
+(the AI following what the user does, when the user asks for it).
 
 KiCad's IPC API has no event subscription (checked 2026-11-27: neither 10.0
-nor the development branch); clients can only ask. So there are three
-sources, used together:
+nor the development branch); clients can only ask. Decision: **the fork gets
+an event channel**; the other sources are fallbacks for an unmodified KiCad.
 
-| Source | What it sees | Latency | Needs |
+| Source | What it sees | Latency | Role |
 |---|---|---|---|
-| IPC polling (`GetSelection`, `GetItems`, bounding boxes) | selection, position/rotation/layer changes, added and deleted items in the PCB | about 100-200 ms at 5-10 polls per second | KiCad 10 (PCB); schematic from KiCad 11 or the fork |
-| File watcher with a semantic diff of `.kicad_sch` / `.kicad_pcb` (and KiCad's autosave files) | every change in both editors, as "U3 moved 2.1 mm, R5 value 10k to 4k7" | on save or autosave | nothing, read-only |
-| Fork hook: event channel | every commit of KiCad's undo system and every selection change, in both editors, pushed immediately | immediate | small fork patch (subscribe call on the IPC socket), written to be offered upstream |
+| Fork event channel: subscribe call on the IPC socket, fed by KiCad's undo/commit system and selection-changed events | every change and selection in both editors, by user or AI | immediate | **primary**, patch kept small and offered upstream |
+| IPC polling (`GetSelection`, `GetItems`) | selection and item changes in the PCB | about 100-200 ms | fallback for unmodified KiCad 10/11 |
+| File watcher with semantic diff of `.kicad_sch` / `.kicad_pcb` and autosave files | every saved change in both editors | on save/autosave | fallback, and source for git diffs |
 
-All events go into one stream in `mspice-kicad`:
+Event format (JSON lines):
 
 ```json
-{"t":"2026-11-27T14:03:11.204Z","editor":"pcb","kind":"move","ref":"U3","from":[102.1,55.0],"to":[104.2,55.0],"rot":[0,90],"by":"user"}
+{"t":"2026-11-27T14:03:11.204Z","editor":"pcb","kind":"move","ref":"U3","from":[102.1,55.0],"to":[104.2,55.0],"rot":[0,90],"by":"ai","step":17}
 {"t":"2026-11-27T14:03:15.880Z","editor":"sch","kind":"select","refs":["R5","C7"],"by":"user"}
-{"t":"2026-11-27T14:04:02.010Z","editor":"pcb","kind":"route","net":"VBUS","length_mm":12.4,"by":"ai"}
+{"t":"2026-11-27T14:04:02.010Z","editor":"pcb","kind":"route","net":"VBUS","length_mm":12.4,"by":"ai","step":18}
 ```
 
-- **Log:** JSON lines in `<project>-mspice/activity/<date>.jsonl`, per
-  session; can be replayed, filtered and summarised ("what changed since the
-  last commit").
-- **Chat:** the panel shows the stream; the AI receives it as context only
-  while "watch" is switched on. In watch mode it reacts to events in batches
-  (for example every few seconds or on request), not to every mouse move, to
-  limit cost. Typical use: "you moved U3 away from L1, the switching loop got
-  4 mm longer".
-- **Privacy:** off by default, a visible indicator while recording, local files
-  only, pause button, retention period setting, nothing is sent to an AI
-  provider unless watch mode is on.
-- Changes made by the AI are marked `"by":"ai"` and appear in the same log.
+- **Log:** `<project>-mspice/activity/<date>.jsonl`; replay, filter, summary
+  ("what changed since the last commit"), source for commit messages.
+- **AI following the user** (optional): the AI receives the stream in batches
+  only while the user enables it, never every mouse move.
+- **Privacy:** recording off by default, visible indicator, local files only,
+  pause, retention setting; nothing reaches an AI provider unless enabled.
 
-## 9b. Git from the editor and from the AI
+## 9c. Git from the editor and from the AI
 
 | Function | Behaviour |
 |---|---|
@@ -286,7 +299,8 @@ The same functions are offered as JSON-RPC methods and as MCP tools:
 | Simulation | run, progress, stop, read waveform (decimated or full), measurements |
 | Tests | list, run, results |
 | Firmware | set firmware, build, start co-simulation |
-| Activity | start/stop watch, read event stream, read log, summarise changes since a commit |
+| Activity | subscribe to events, read log, summarise changes since a commit |
+| Watch mode | set speed/step mode, pause, stop, undo AI steps, set allowed area or nets |
 | Git | status, diff (semantic), commit, pull, push, log, branch |
 
 API versioning follows [VERSIONING.md](../VERSIONING.md); every response
@@ -307,10 +321,13 @@ The earlier task list used V-numbers. Those related to KiCad are now INT tasks:
 
 ## 12. Order of work
 
-1. MSpice Rust migration (RST-01 to RST-04), API surface defined with it.
+1. MSpice Rust migration (RST-01 to RST-04) and the engine API (INT-14).
 2. `mspice-kicad` external process: project model through IPC API, netlist
-   builder, JSON-RPC API, MCP server (read functions, run simulation, render).
-3. Sidecar file with off-board devices and tests; CLI `mspice test`.
-4. Fork: dock panel with oscilloscope view and chat; provider adapters.
-5. Write functions through IPC (schematic, PCB edits), DRC/render tools.
+   builder, JSON-RPC API, MCP server with token security (INT-10, INT-15):
+   read functions, run simulation, render.
+3. Sidecar file with off-board devices and tests; CLI `mspice test` (INT-09).
+4. Fork: event channel patch and activity log (INT-11); dock panel with
+   oscilloscope view and chat; provider adapters.
+5. Write functions through IPC (schematic, PCB edits), DRC/render tools, watch
+   mode (INT-13), git (INT-12).
 6. Firmware in the loop once SIL-00/SIL-01 and mspice-emu E1/E2 exist.

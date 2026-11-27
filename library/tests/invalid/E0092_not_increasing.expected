@@ -1,0 +1,4 @@
+code: E0092
+message: column `voltage` is not strictly increasing (2 is followed by 1)
+file: tests/invalid/data/E0092_not_increasing.csv
+line: 6

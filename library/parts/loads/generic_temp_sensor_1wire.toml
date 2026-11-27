@@ -1,0 +1,428 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_temp_sensor_1wire"
+name = "1-Wire digital temperature sensor (supply and timing model)"
+version = "0.1.0"
+category = "load/sensor"
+description = """
+Load model of a 1-Wire temperature sensor. It covers what matters for power
+and bus design, not the temperature reading itself:
+
+- supply current in standby and during a temperature conversion;
+- external supply (vdd) or parasite power: when vdd is tied to gnd, the
+  device takes its current from the data line, so the bus needs a strong
+  pull-up during the conversion;
+- reset and presence pulse: after the master holds dq low for at least
+  t_reset_min, the device answers with a presence pulse;
+- command decoding: write slots are decoded (short low pulse = 1, long = 0,
+  least significant bit first). The sequence Skip ROM (0xCC) followed by
+  Convert T (0x44) starts a conversion that lasts t_conv_12bit / 2^(12 - resolution_bits).
+
+Not modelled: ROM search, scratchpad reads, the temperature value, alarms.
+A reset during a conversion is ignored. Timing and current values are the
+typical figures found in public datasheets of compatible devices; they have
+not been checked against one specific revision."""
+compatible = ["DS18B20"]
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["sensor", "temperature", "1-wire", "protocol", "state-machine"]
+
+[part.source]
+kind = "datasheet"
+title = "DS18B20 Programmable Resolution 1-Wire Digital Thermometer"
+vendor = "Analog Devices (formerly Maxim Integrated)"
+section = "DC electrical characteristics; AC electrical characteristics; 1-Wire signaling"
+notes = "Revision not recorded; typical values used. Must be checked before quality can be raised to datasheet."
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[pins]]
+name = "dq"
+role = "bidirectional"
+driver = "open_drain"
+reference = "gnd"
+description = "1-Wire data line, needs an external pull-up"
+
+[[pins]]
+name = "vdd"
+role = "power"
+reference = "gnd"
+description = "Supply; tie to gnd for parasite power"
+
+[[parameters]]
+name = "i_standby"
+type = "real"
+unit = "A"
+default = "750 nA"
+min = 0
+description = "Standby current (typical)"
+
+[[parameters]]
+name = "i_active"
+type = "real"
+unit = "A"
+default = "1 mA"
+min = 0
+description = "Current during a temperature conversion (typical)"
+
+[[parameters]]
+name = "resolution_bits"
+type = "integer"
+unit = "1"
+default = 12
+min = 9
+max = 12
+description = "Conversion resolution; each bit less halves the conversion time"
+
+[[parameters]]
+name = "t_conv_12bit"
+type = "real"
+unit = "s"
+default = "750 ms"
+min = "1 ms"
+description = "Conversion time at 12 bit (maximum value)"
+
+[[parameters]]
+name = "t_reset_min"
+type = "real"
+unit = "s"
+default = "480 us"
+min = "1 us"
+description = "Minimum master low time recognised as reset"
+
+[[parameters]]
+name = "t_presence_delay"
+type = "real"
+unit = "s"
+default = "30 us"
+min = 0
+description = "Delay from the end of the reset pulse to the presence pulse (15 us to 60 us)"
+
+[[parameters]]
+name = "t_presence"
+type = "real"
+unit = "s"
+default = "120 us"
+min = "1 us"
+description = "Length of the presence pulse (60 us to 240 us)"
+
+[[parameters]]
+name = "t_slot_sample"
+type = "real"
+unit = "s"
+default = "15 us"
+min = "1 us"
+description = "Low pulses shorter than this are read as 1, longer ones as 0"
+
+[[parameters]]
+name = "v_supply_detect"
+type = "real"
+unit = "V"
+default = "1.5 V"
+min = 0
+description = "vdd above this level counts as external supply (estimate)"
+
+[[parameters]]
+name = "r_pulldown"
+type = "real"
+unit = "Ohm"
+default = "20 Ohm"
+min = "1 Ohm"
+description = "On-resistance of the dq pull-down (estimate)"
+
+[model]
+kind = "load"
+
+[[model.signals]]
+name = "powered"
+expr = "V(vdd, gnd) > v_supply_detect ? 1 : 0"
+description = "1 with external supply, 0 in parasite power mode"
+
+[[model.branches]]
+name = "supply_vdd"
+nodes = ["vdd", "gnd"]
+mode = "state_machine"
+value = "{powered * i_standby}"
+
+[[model.branches]]
+name = "supply_dq"
+nodes = ["dq", "gnd"]
+mode = "state_machine"
+value = "{(1 - powered) * i_standby}"
+
+[[model.outputs]]
+name = "dq_pulldown"
+source = "switch"
+nodes = ["dq", "gnd"]
+expr = "in_state(presence)"
+ron = "{r_pulldown}"
+roff = "1e9 Ohm"
+
+[model.state_machine]
+initial = "idle"
+
+[[model.state_machine.variables]]
+name = "bit"
+init = 0
+
+[[model.state_machine.variables]]
+name = "bit_count"
+init = 0
+
+[[model.state_machine.variables]]
+name = "data"
+init = 0
+description = "Received bits, least significant bit first"
+
+[[model.state_machine.inputs]]
+name = "dq_level"
+expr = "V(dq, gnd)"
+high = "2.2 V"
+low = "0.8 V"
+
+[[model.state_machine.states]]
+name = "idle"
+
+[[model.state_machine.states]]
+name = "master_low"
+description = "The master holds dq low: a reset pulse or the start of a write slot"
+
+[[model.state_machine.states]]
+name = "presence_wait"
+
+[[model.state_machine.states]]
+name = "presence"
+description = "The device pulls dq low"
+
+[[model.state_machine.states]]
+name = "convert"
+values = { supply_vdd = "{powered * i_active}", supply_dq = "{(1 - powered) * i_active}" }
+
+[[model.state_machine.transitions]]
+from = "idle"
+to = "master_low"
+on = "falling(dq_level)"
+
+[[model.state_machine.transitions]]
+from = "master_low"
+to = "presence_wait"
+on = "rising(dq_level)"
+when = "time_in_state >= t_reset_min"
+priority = 1
+
+[[model.state_machine.transitions]]
+from = "master_low"
+to = "idle"
+on = "rising(dq_level)"
+when = "time_in_state < t_reset_min"
+description = "End of a write slot"
+actions = [
+  "bit = time_in_state < t_slot_sample ? 1 : 0",
+  "data = data + bit * pow(2, bit_count)",
+  "bit_count = bit_count + 1",
+]
+
+[[model.state_machine.transitions]]
+from = "presence_wait"
+to = "presence"
+after = "{t_presence_delay}"
+
+[[model.state_machine.transitions]]
+from = "presence"
+to = "idle"
+after = "{t_presence}"
+actions = ["bit_count = 0", "data = 0"]
+
+[[model.state_machine.transitions]]
+from = "idle"
+to = "convert"
+when = "bit_count >= 16 && data == 17612"
+description = "Skip ROM (0xCC) then Convert T (0x44): 0xCC + 256 * 0x44 = 17612"
+actions = ["bit_count = 0", "data = 0"]
+
+[[model.state_machine.transitions]]
+from = "idle"
+to = "idle"
+when = "bit_count >= 16 && data != 17612"
+description = "Any other command is ignored"
+actions = ["bit_count = 0", "data = 0"]
+
+[[model.state_machine.transitions]]
+from = "convert"
+to = "idle"
+after = "{t_conv_12bit / pow(2, 12 - resolution_bits)}"
+
+[[tests]]
+name = "standby_external_supply"
+analysis = "op"
+
+[[tests.elements]]
+name = "Rpu"
+type = "R"
+nodes = ["dq", "vpu"]
+params = { r = "4.7 kOhm" }
+
+[[tests.stimulus]]
+name = "vpu"
+nodes = ["vpu", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(vdd)"
+value = "750 nA"
+rel_tol = 0.01
+
+[[tests]]
+name = "standby_parasite_power"
+description = "vdd tied to gnd: the standby current flows into dq"
+analysis = "op"
+
+[[tests.elements]]
+name = "Rpu"
+type = "R"
+nodes = ["dq", "vpu"]
+params = { r = "4.7 kOhm" }
+
+[[tests.stimulus]]
+name = "vpu"
+nodes = ["vpu", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(dq)"
+value = "750 nA"
+rel_tol = 0.01
+
+[[tests]]
+name = "reset_presence_convert"
+description = """
+Master (an open-drain switch driven by ctrl) sends a 500 us reset, the device
+answers with a presence pulse, then the master writes 0xCC and 0x44. The
+conversion current flows until t_conv_12bit after the last slot."""
+analysis = "tran"
+stop = "10 ms"
+step = "0.1 us"
+
+[[tests.elements]]
+name = "Rpu"
+type = "R"
+nodes = ["dq", "vpu"]
+params = { r = "4.7 kOhm" }
+
+[[tests.elements]]
+name = "Smaster"
+type = "SW"
+nodes = ["dq", "0", "ctrl", "0"]
+params = { ron = "10 Ohm", roff = "1e9 Ohm", vt = "2.5 V", vh = "0.1 V" }
+
+[[tests.stimulus]]
+name = "vpu"
+nodes = ["vpu", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vctrl"
+nodes = ["ctrl", "0"]
+source = "voltage"
+waveform = "pwl"
+points = [
+  [0, 0], [1e-05, 0], [1.01e-05, 5], [0.00051, 5],
+  [0.0005101, 0], [0.0008, 0], [0.0008001, 5], [0.00086, 5],
+  [0.0008601, 0], [0.000875, 0], [0.0008751, 5], [0.000935, 5],
+  [0.0009351, 0], [0.00095, 0], [0.0009501, 5], [0.000956, 5],
+  [0.0009561, 0], [0.001025, 0], [0.0010251, 5], [0.001031, 5],
+  [0.0010311, 0], [0.0011, 0], [0.0011001, 5], [0.00116, 5],
+  [0.0011601, 0], [0.001175, 0], [0.0011751, 5], [0.001235, 5],
+  [0.0012351, 0], [0.00125, 0], [0.0012501, 5], [0.001256, 5],
+  [0.0012561, 0], [0.001325, 0], [0.0013251, 5], [0.001331, 5],
+  [0.0013311, 0], [0.0014, 0], [0.0014001, 5], [0.00146, 5],
+  [0.0014601, 0], [0.001475, 0], [0.0014751, 5], [0.001535, 5],
+  [0.0015351, 0], [0.00155, 0], [0.0015501, 5], [0.001556, 5],
+  [0.0015561, 0], [0.001625, 0], [0.0016251, 5], [0.001685, 5],
+  [0.0016851, 0], [0.0017, 0], [0.0017001, 5], [0.00176, 5],
+  [0.0017601, 0], [0.001775, 0], [0.0017751, 5], [0.001835, 5],
+  [0.0018351, 0], [0.00185, 0], [0.0018501, 5], [0.001856, 5],
+  [0.0018561, 0], [0.001925, 0], [0.0019251, 5], [0.001985, 5],
+  [0.0019851, 0], [0.002, 0],
+]
+
+[[tests.expect]]
+probe = "V(dq, gnd)"
+at = "520 us"
+value = "5 V"
+abs_tol = "50 mV"
+description = "Reset released, presence pulse not yet started"
+
+[[tests.expect]]
+probe = "V(dq, gnd)"
+at = "600 us"
+value = "21 mV"
+abs_tol = "10 mV"
+description = "Presence pulse: 5 V * 20 Ohm / (4.7 kOhm + 20 Ohm)"
+
+[[tests.expect]]
+probe = "I(vdd)"
+at = "1.5 ms"
+value = "750 nA"
+rel_tol = 0.01
+description = "Command still being written"
+
+[[tests.expect]]
+probe = "I(vdd)"
+at = "5 ms"
+value = "1 mA"
+rel_tol = 0.01
+description = "Conversion running"

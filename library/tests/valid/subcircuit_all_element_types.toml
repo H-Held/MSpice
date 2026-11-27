@@ -1,0 +1,141 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_elements"
+name = "All element types"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: All element types."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["a", "b", "c", "d", "e", "f", "g"]
+
+[[model.elements]]
+name = "R1"
+type = "R"
+nodes = ["p", "a"]
+params = { r = "100 Ohm", tc1 = 1e-4, tc2 = 0 }
+
+[[model.elements]]
+name = "C1"
+type = "C"
+nodes = ["a", "n"]
+params = { c = "1 nF", ic = 0 }
+
+[[model.elements]]
+name = "L1"
+type = "L"
+nodes = ["a", "b"]
+params = { l = "1 uH", ic = 0 }
+
+[[model.elements]]
+name = "D1"
+type = "D"
+nodes = ["b", "c"]
+params = { is = "1e-14 A", n = 1, rs = "1 Ohm", bv = "50 V", ibv = "1 uA", cjo = "1 pF", vj = "0.7 V", m = 0.5, tt = "1 ns", eg = "1.11 V", xti = 3 }
+
+[[model.elements]]
+name = "Q1"
+type = "Q"
+polarity = "npn"
+nodes = ["c", "a", "n"]
+params = { is = "1e-14 A", bf = 100, vaf = "50 V" }
+
+[[model.elements]]
+name = "Q2"
+type = "Q"
+polarity = "pnp"
+nodes = ["n", "a", "c"]
+params = { bf = 80 }
+
+[[model.elements]]
+name = "M1"
+type = "M"
+polarity = "nmos"
+nodes = ["d", "a", "n"]
+params = { vto = "2 V", kp = 0.05, lambda = 0.01, w = "1 m", l = "1 m" }
+
+[[model.elements]]
+name = "M2"
+type = "M"
+polarity = "pmos"
+nodes = ["d", "a", "p", "p"]
+params = { vto = "-2 V", kp = 0.05 }
+
+[[model.elements]]
+name = "S1"
+type = "SW"
+nodes = ["d", "e", "a", "n"]
+params = { ron = "1 Ohm", roff = "1 GOhm", vt = "1 V", vh = "0.1 V" }
+
+[[model.elements]]
+name = "V1"
+type = "V"
+nodes = ["e", "f"]
+params = { dc = 0 }
+
+[[model.elements]]
+name = "I1"
+type = "I"
+nodes = ["f", "n"]
+params = { dc = "1 uA" }
+
+[[model.elements]]
+name = "E1"
+type = "E"
+nodes = ["g", "n", "a", "n"]
+params = { gain = 2 }
+
+[[model.elements]]
+name = "G1"
+type = "G"
+nodes = ["g", "n", "a", "n"]
+params = { gm = "1 mS" }
+
+[[model.elements]]
+name = "B1"
+type = "B"
+source = "current"
+nodes = ["g", "n"]
+expr = "I(V1) * 2 + V(g, n) / 1k"
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

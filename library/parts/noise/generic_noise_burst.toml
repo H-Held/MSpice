@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_noise_burst"
+name = "Burst (random telegraph) noise source"
+version = "0.1.0"
+category = "noise/burst"
+description = """
+Random telegraph noise: the output jumps between 0 and `amplitude` at random
+times. Events arrive with a mean rate `rate`; each high phase lasts on
+average `duration` (exponentially distributed). Use it as a voltage source in
+series with a signal or supply to test how a circuit reacts to sporadic
+disturbances, for example contact problems or interference bursts. The same
+`seed` gives the same waveform in every run."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["noise", "burst", "interference", "random"]
+
+[part.source]
+kind = "textbook"
+title = "Random telegraph signal with Poisson-distributed switching events"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "amplitude"
+type = "real"
+unit = "V"
+default = "10 mV"
+description = "Step height"
+
+[[parameters]]
+name = "rate"
+type = "real"
+unit = "Hz"
+default = "50 Hz"
+min = "1 uHz"
+description = "Mean number of bursts per second"
+
+[[parameters]]
+name = "duration"
+type = "real"
+unit = "s"
+default = "2 ms"
+min = "1 ns"
+description = "Mean length of a burst"
+
+[[parameters]]
+name = "rise_time"
+type = "real"
+unit = "s"
+default = "1 us"
+min = "1 ps"
+
+[model]
+kind = "noise_source"
+
+[model.noise]
+type = "burst"
+output = "voltage"
+nodes = ["p", "n"]
+amplitude = "{amplitude}"
+rate = "{rate}"
+duration = "{duration}"
+rise_time = "{rise_time}"
+seed = 1
+
+[[tests]]
+name = "range"
+description = "The output never leaves the range 0 .. amplitude"
+analysis = "tran"
+stop = "200 ms"
+step = "10 us"
+
+[[tests.elements]]
+name = "Rload"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "1 kOhm" }
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(p, n)"
+min = "-0.01 mV"
+max = "10.01 mV"

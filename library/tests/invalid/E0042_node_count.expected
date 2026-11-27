@@ -1,0 +1,4 @@
+code: E0042
+message: [model] (`R`, resistor) needs 2 nodes, found 3
+file: tests/invalid/E0042_node_count.toml
+line: 35

@@ -1,0 +1,4 @@
+code: E0122
+message: dependency `base` requires version `>=1.0.0`, found 0.1.0
+file: tests/invalid/E0122_dependency_version/app/library.toml
+line: 14

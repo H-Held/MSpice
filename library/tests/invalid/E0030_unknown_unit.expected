@@ -1,0 +1,4 @@
+code: E0030
+message: unknown unit `ohm` for parameter `resistance`
+file: tests/invalid/E0030_unknown_unit.toml
+line: 29

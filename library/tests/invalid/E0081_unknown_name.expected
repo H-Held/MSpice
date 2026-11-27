@@ -1,0 +1,4 @@
+code: E0081
+message: unknown name `resistence` in `r` in [model] (`R`, resistor)
+file: tests/invalid/E0081_unknown_name.toml
+line: 36

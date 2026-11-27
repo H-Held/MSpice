@@ -1,0 +1,4 @@
+code: E0121
+message: dependency `other`: no library manifest at `tests/invalid/no_such_library`
+file: tests/invalid/E0121_dependency_missing/library.toml
+line: 13

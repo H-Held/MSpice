@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# Manifest of the generic MSpice part library. See SPEC.md section 2.
+format_version = "0.1"
+
+[library]
+name = "mspice-generic"
+version = "0.1.0"
+description = "Generic standard parts, loads and interference sources of the MSpice project."
+license = "CC-BY-4.0"
+authors = ["The MSpice Authors"]
+parts = ["parts/*.toml", "parts/loads/*.toml", "parts/noise/*.toml"]

@@ -1,0 +1,4 @@
+code: E0021
+message: licence `GPL-3.0-only` is not accepted for part data
+file: tests/invalid/E0021_license.toml
+line: 11

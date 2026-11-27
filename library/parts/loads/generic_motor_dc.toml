@@ -1,0 +1,190 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_motor_dc"
+name = "Brushed DC motor"
+version = "0.1.0"
+category = "motor/dc"
+description = """
+Brushed DC motor with permanent magnets:
+  V(a, b) = R * i + L * di/dt + k_e * omega
+  J * d(omega)/dt = k_t * i - b * omega - t_load
+The mechanical side is an analog circuit on the internal node `omega`
+(1 V = 1 rad/s): a capacitor J, a resistor 1/b and a torque current source.
+Not modelled: brush drop, commutation ripple, cogging, static friction,
+saturation, temperature rise of the winding."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["motor", "dc", "electromechanical"]
+
+[part.source]
+kind = "textbook"
+title = "Equivalent circuit of the permanent-magnet DC motor; round example values for a small 12 V motor"
+
+[[pins]]
+name = "a"
+role = "power"
+description = "Terminal A (positive for forward rotation)"
+
+[[pins]]
+name = "b"
+role = "power"
+description = "Terminal B"
+
+[[parameters]]
+name = "r_winding"
+type = "real"
+unit = "Ohm"
+default = "2 Ohm"
+min = "1 mOhm"
+tolerance = { relative = 0.1, distribution = "uniform" }
+
+[[parameters]]
+name = "l_winding"
+type = "real"
+unit = "H"
+default = "1 mH"
+min = "1 nH"
+
+[[parameters]]
+name = "k_e"
+type = "real"
+unit = "V*s/rad"
+default = 0.01
+min = 0
+description = "Back-EMF constant"
+
+[[parameters]]
+name = "k_t"
+type = "real"
+unit = "N*m/A"
+default = 0.01
+min = 0
+description = "Torque constant (equal to k_e in SI units for an ideal motor)"
+
+[[parameters]]
+name = "inertia"
+type = "real"
+unit = "kg*m^2"
+default = 1e-5
+min = 1e-12
+description = "Moment of inertia of rotor and load"
+
+[[parameters]]
+name = "friction"
+type = "real"
+unit = "N*m*s/rad"
+default = 1e-6
+min = 1e-12
+description = "Viscous friction coefficient"
+
+[[parameters]]
+name = "t_load"
+type = "real"
+unit = "N*m"
+default = 0
+description = "Constant load torque"
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["n1", "n2", "omega"]
+
+[[model.elements]]
+name = "Rw"
+type = "R"
+nodes = ["a", "n1"]
+params = { r = "{r_winding}" }
+
+[[model.elements]]
+name = "Lw"
+type = "L"
+nodes = ["n1", "n2"]
+params = { l = "{l_winding}" }
+
+[[model.elements]]
+name = "Bemf"
+type = "B"
+source = "voltage"
+nodes = ["n2", "b"]
+expr = "k_e * V(omega)"
+
+[[model.elements]]
+name = "Btorque"
+type = "B"
+source = "current"
+nodes = ["0", "omega"]
+expr = "k_t * I(Lw) - t_load"
+
+[[model.elements]]
+name = "Cinertia"
+type = "C"
+nodes = ["omega", "0"]
+params = { c = "{inertia}" }
+
+[[model.elements]]
+name = "Rfriction"
+type = "R"
+nodes = ["omega", "0"]
+params = { r = "{1 / friction}" }
+
+[[tests]]
+name = "no_load_steady_state"
+description = """
+12 V, no load torque: omega = k_t * V / (R * b + k_t * k_e) = 1176.5 rad/s,
+i = (V - k_e * omega) / R = 117.6 mA"""
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["a", "b"]
+source = "voltage"
+waveform = "dc"
+value = "12 V"
+
+[[tests.stimulus]]
+name = "vb"
+nodes = ["b", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(a)"
+value = "117.6 mA"
+rel_tol = 0.01
+
+[[tests]]
+name = "stall_current"
+description = "Right after switch-on the rotor stands still: the current rises with L/R towards V/R = 6 A"
+analysis = "tran"
+stop = "2 ms"
+step = "1 us"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["a", "b"]
+source = "voltage"
+waveform = "pulse"
+v1 = 0
+v2 = "12 V"
+delay = 0
+rise = "1 us"
+fall = "1 us"
+width = "1 s"
+period = "2 s"
+
+[[tests.stimulus]]
+name = "vb"
+nodes = ["b", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(a)"
+at = "500 us"
+value = "3.79 A"
+rel_tol = 0.03
+description = "6 A * (1 - exp(-0.5 ms / 0.5 ms)); the back-EMF is still below 0.1 V"

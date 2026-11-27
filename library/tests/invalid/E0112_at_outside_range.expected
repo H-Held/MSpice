@@ -1,0 +1,4 @@
+code: E0112
+message: `at` (0.002 s) in [[tests.expect]] entry 1 of test `ohms_law` is outside the analysis 0 .. 0.001 s
+file: tests/invalid/E0112_at_outside_range.toml
+line: 52

@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_pins"
+name = "Pins with limits"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Pins with limits."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "vdd"
+role = "power"
+description = "Supply"
+reference = "gnd"
+abs_max_voltage = "6 V"
+abs_min_voltage = "-0.3 V"
+abs_max_current = "100 mA"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[pins]]
+name = "inp"
+role = "input"
+abs_max_voltage = 6.3
+
+[[pins]]
+name = "out"
+role = "output"
+driver = "push_pull"
+
+[[pins]]
+name = "od"
+role = "output"
+driver = "open_drain"
+
+[[pins]]
+name = "io"
+role = "bidirectional"
+driver = "tristate"
+
+[[pins]]
+name = "sense"
+role = "analog"
+
+
+[model]
+kind = "behavioral"
+
+[[model.outputs]]
+name = "drive"
+source = "voltage"
+nodes = ["out", "gnd"]
+expr = "V(inp, gnd) > 1.5 ? V(vdd, gnd) : 0"
+r_out = "20 Ohm"
+
+[[model.outputs]]
+name = "open"
+source = "switch"
+nodes = ["od", "gnd"]
+expr = "V(inp, gnd) > 1.5"
+
+[[model.elements]]
+name = "Rbus"
+type = "R"
+nodes = ["io", "gnd"]
+params = { r = "1 MOhm" }
+
+[[model.elements]]
+name = "Rsense"
+type = "R"
+nodes = ["sense", "gnd"]
+params = { r = "1 MOhm" }
+
+[[tests]]
+name = "drive_high"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "3.3 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vin"
+nodes = ["inp", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "3.3 V"
+
+[[tests.expect]]
+probe = "V(out, gnd)"
+value = "3.3 V"
+abs_tol = "1 mV"

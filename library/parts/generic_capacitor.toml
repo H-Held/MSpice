@@ -1,0 +1,171 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_capacitor"
+name = "Capacitor"
+version = "0.1.0"
+category = "passive/capacitor"
+description = """
+Linear capacitor. The features `esr` (equivalent series resistance) and `esl`
+(equivalent series inductance) add the two main parasitics in series. When a
+feature is off, its element is replaced by a short. Voltage and temperature
+dependence of the capacitance (for example of X7R ceramics) is not modelled."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["passive", "capacitor"]
+
+[part.source]
+kind = "estimate"
+title = "Series R-L-C equivalent circuit; default ESR and ESL are order-of-magnitude values for a small ceramic capacitor"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "capacitance"
+type = "real"
+unit = "F"
+default = "100 nF"
+min = "1 fF"
+tolerance = { relative = 0.1, distribution = "uniform" }
+
+[[parameters]]
+name = "esr"
+type = "real"
+unit = "Ohm"
+default = "20 mOhm"
+min = "1 uOhm"
+feature = "esr"
+description = "Equivalent series resistance"
+
+[[parameters]]
+name = "esl"
+type = "real"
+unit = "H"
+default = "1 nH"
+min = "1e-15 H"
+feature = "esl"
+description = "Equivalent series inductance"
+
+[[parameters]]
+name = "v_initial"
+type = "real"
+unit = "V"
+default = 0
+description = "Initial voltage, used when a transient analysis starts from initial conditions"
+
+[[features]]
+name = "esr"
+description = "Equivalent series resistance"
+default = false
+
+[[features]]
+name = "esl"
+description = "Equivalent series inductance"
+default = false
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["n1", "n2"]
+
+[[model.elements]]
+name = "C1"
+type = "C"
+nodes = ["p", "n1"]
+params = { c = "{capacitance}", ic = "{v_initial}" }
+
+[[model.elements]]
+name = "Resr"
+type = "R"
+nodes = ["n1", "n2"]
+params = { r = "{esr}" }
+feature = "esr"
+when_disabled = "short"
+
+[[model.elements]]
+name = "Lesl"
+type = "L"
+nodes = ["n2", "n"]
+params = { l = "{esl}" }
+feature = "esl"
+when_disabled = "short"
+
+[[tests]]
+name = "rc_charge"
+description = "1 V step through 1 kOhm into 100 nF: 63.2 % after one time constant (100 us)"
+analysis = "tran"
+stop = "500 us"
+step = "1 us"
+
+[[tests.elements]]
+name = "Rs"
+type = "R"
+nodes = ["vin", "p"]
+params = { r = "1 kOhm" }
+
+[[tests.stimulus]]
+name = "vstep"
+nodes = ["vin", "0"]
+source = "voltage"
+waveform = "pulse"
+v1 = 0
+v2 = "1 V"
+delay = 0
+rise = "1 ns"
+fall = "1 ns"
+width = "1 s"
+period = "2 s"
+
+[[tests.stimulus]]
+name = "vref"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(p, n)"
+at = "100 us"
+value = "0.632 V"
+abs_tol = "5 mV"
+
+[[tests]]
+name = "esr_step"
+description = "With ESR enabled, a 1 A current step shows an immediate 20 mV step"
+analysis = "tran"
+stop = "10 ns"
+features = { esr = true }
+
+[[tests.stimulus]]
+name = "istep"
+nodes = ["0", "p"]
+source = "current"
+waveform = "pulse"
+v1 = 0
+v2 = "1 A"
+delay = "1 ns"
+rise = "0.1 ns"
+fall = "0.1 ns"
+width = "1 s"
+period = "2 s"
+
+[[tests.stimulus]]
+name = "vref"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(p, n)"
+at = "2 ns"
+value = "20 mV"
+abs_tol = "1 mV"
+description = "The capacitor itself charges by only 1 A * 0.9 ns / 100 nF = 9 uV in this time"

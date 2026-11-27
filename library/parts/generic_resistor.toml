@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_resistor"
+name = "Resistor"
+version = "0.1.0"
+category = "passive/resistor"
+description = """
+Linear resistor. With the feature `thermal`, the resistance follows
+R(T) = R * (1 + tc1 * (T - 25 degC) + tc2 * (T - 25 degC)^2) as in common SPICE
+resistor models. Self-heating is not modelled."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["passive", "resistor"]
+
+[part.source]
+kind = "textbook"
+title = "Ohm's law; linear and quadratic temperature coefficients as used by SPICE resistor models"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "resistance"
+type = "real"
+unit = "Ohm"
+default = "1 kOhm"
+min = "1 uOhm"
+tolerance = { relative = 0.01, distribution = "uniform" }
+description = "Resistance at 25 degC"
+
+[[parameters]]
+name = "tc1"
+type = "real"
+unit = "1/K"
+default = 0
+feature = "thermal"
+description = "Linear temperature coefficient (100e-6 for 100 ppm/K)"
+
+[[parameters]]
+name = "tc2"
+type = "real"
+unit = "1/K^2"
+default = 0
+feature = "thermal"
+description = "Quadratic temperature coefficient"
+
+[[features]]
+name = "thermal"
+description = "Temperature dependence through tc1 and tc2"
+default = false
+
+[model]
+kind = "primitive"
+element = "R"
+nodes = ["p", "n"]
+params = { r = "{resistance}", tc1 = "{tc1}", tc2 = "{tc2}" }
+
+[[tests]]
+name = "ohms_law"
+description = "1 V across 1 kOhm gives 1 mA"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.expect]]
+probe = "I(p)"
+value = "1 mA"
+rel_tol = 1e-6
+
+[[tests]]
+name = "instance_value"
+description = "Instance parameter override: 10 kOhm at 5 V gives 0.5 mA"
+analysis = "op"
+params = { resistance = "10 kOhm" }
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.expect]]
+probe = "I(p)"
+value = "0.5 mA"
+rel_tol = 1e-6

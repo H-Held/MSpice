@@ -1,0 +1,4 @@
+code: E0020
+message: source is missing `title`
+file: tests/invalid/E0020_source_title.toml
+line: 14

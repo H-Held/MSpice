@@ -1,0 +1,4 @@
+code: E0031
+message: `1 kV` is in `V`, but `default` in parameter `resistance` expects `Ohm`
+file: tests/invalid/E0031_unit_mismatch.toml
+line: 30

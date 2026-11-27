@@ -1,0 +1,4 @@
+code: E0035
+message: relative tolerance 5 of parameter `resistance` is outside [0, 1)
+file: tests/invalid/E0035_tolerance.toml
+line: 31

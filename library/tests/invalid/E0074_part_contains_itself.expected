@@ -1,0 +1,4 @@
+code: E0074
+message: part `generic_test_resistor` contains itself: `generic_test_resistor` -> `generic_test_resistor`
+file: tests/invalid/E0074_part_contains_itself.toml
+line: 44

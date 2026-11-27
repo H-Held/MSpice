@@ -1,0 +1,4 @@
+code: E0013
+message: name `resistance` is already used by a parameter
+file: tests/invalid/E0013_duplicate_name.toml
+line: 33

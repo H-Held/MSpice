@@ -1,0 +1,4 @@
+code: E0032
+message: `one kOhm` is not a valid quantity
+file: tests/invalid/E0032_malformed_quantity.toml
+line: 30

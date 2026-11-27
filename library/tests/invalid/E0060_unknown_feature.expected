@@ -1,0 +1,4 @@
+code: E0060
+message: unknown feature `thermals`
+file: tests/invalid/E0060_unknown_feature.toml
+line: 31

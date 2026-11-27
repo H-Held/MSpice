@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[library]
+name = "merge-test-vendor"
+version = "0.1.0"
+description = "Merge test fixture"
+license = "CC-BY-4.0"
+parts = ["parts/*.toml"]
+
+[[overrides]]
+id = "generic_merge_shared"
+library = "merge-test-base"
+reason = "Vendor values replace the generic ones"

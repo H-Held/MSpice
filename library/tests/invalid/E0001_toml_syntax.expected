@@ -1,0 +1,4 @@
+code: E0001
+message: TOML syntax error: Error while parsing string: unescaped control characters other than TAB (U+0009) are explicitly prohibited
+file: tests/invalid/E0001_toml_syntax.toml
+line: 6

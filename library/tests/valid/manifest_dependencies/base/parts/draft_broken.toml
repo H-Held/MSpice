@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# Excluded by the manifest; deliberately not valid TOML.
+this file is excluded and never parsed = [

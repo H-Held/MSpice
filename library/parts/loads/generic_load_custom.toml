@@ -1,0 +1,181 @@
+# SPDX-License-Identifier: CC-BY-4.0
+#
+# Template for your own load. Copy this file, give it a new id
+# (generic_<what_it_is>), keep the branches you need and delete the others.
+# Each branch shows one way to describe a consumer:
+#   - fixed:   a constant current, resistance or power;
+#   - curve:   a current read from a CSV curve (here: against the voltage);
+#   - formula: any expression of voltages, time and parameters.
+# Features let you switch each branch on and off per instance.
+format_version = "0.1"
+
+[part]
+id = "generic_load_custom"
+name = "Custom load (template)"
+version = "0.1.0"
+category = "load/template"
+description = """
+Template showing the three basic ways to describe a two-pin consumer. All
+three branches are in parallel between p and n; each can be switched off
+with its feature. Default: only the fixed current is on."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["load", "template", "example"]
+
+[part.source]
+kind = "estimate"
+title = "Illustrative example values, not a real device"
+
+[[pins]]
+name = "p"
+role = "power"
+description = "Positive supply connection"
+
+[[pins]]
+name = "n"
+role = "ground"
+description = "Return"
+
+[[parameters]]
+name = "i_fixed"
+type = "real"
+unit = "A"
+default = "10 mA"
+min = 0
+feature = "fixed_current"
+
+[[parameters]]
+name = "g_square"
+type = "real"
+unit = "A/V^2"
+default = 1e-3
+min = 0
+feature = "square_law"
+description = "Coefficient k of i = k * V^2"
+
+[[features]]
+name = "fixed_current"
+description = "Constant current i_fixed"
+default = true
+
+[[features]]
+name = "iv_curve"
+description = "Current from data/generic_load_custom_iv.csv"
+default = false
+
+[[features]]
+name = "square_law"
+description = "Current g_square * V^2"
+default = false
+
+[[curves]]
+name = "current_vs_voltage"
+file = "data/generic_load_custom_iv.csv"
+x = "voltage"
+y = "current"
+x_unit = "V"
+y_unit = "A"
+interpolation = "linear"
+extrapolation = "linear"
+
+[model]
+kind = "load"
+
+[[model.branches]]
+name = "constant"
+nodes = ["p", "n"]
+mode = "fixed"
+quantity = "current"
+value = "{i_fixed}"
+feature = "fixed_current"
+
+[[model.branches]]
+name = "from_curve"
+nodes = ["p", "n"]
+mode = "curve"
+curve = "current_vs_voltage"
+input = "V(p, n)"
+feature = "iv_curve"
+
+[[model.branches]]
+name = "from_formula"
+nodes = ["p", "n"]
+mode = "formula"
+expr = "g_square * V(p, n)^2"
+feature = "square_law"
+
+[[tests]]
+name = "fixed_only"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+value = "10 mA"
+rel_tol = 1e-6
+
+[[tests]]
+name = "curve_only"
+description = "Curve value at 2.5 V, interpolated linearly between 2 V and 3 V"
+analysis = "op"
+features = { fixed_current = false, iv_curve = true }
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "2.5 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+value = "3.25 mA"
+rel_tol = 1e-6
+
+[[tests]]
+name = "all_three_swept"
+description = "DC sweep with all branches on: at 4 V, 10 mA + 6 mA + 16 mA"
+analysis = "dc"
+features = { iv_curve = true, square_law = true }
+sweep = { stimulus = "v1", from = 0, to = 5, step = 0.5 }
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+at = "4 V"
+value = "32 mA"
+rel_tol = 1e-6

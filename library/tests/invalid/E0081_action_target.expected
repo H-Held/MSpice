@@ -1,0 +1,4 @@
+code: E0081
+message: `cuont` in `actions` of [[model.state_machine.transitions]] entry 1 is not a state machine variable
+file: tests/invalid/E0081_action_target.toml
+line: 69

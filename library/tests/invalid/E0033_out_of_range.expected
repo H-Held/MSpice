@@ -1,0 +1,4 @@
+code: E0033
+message: `default` (1000) of parameter `resistance` is outside [-inf, 100]
+file: tests/invalid/E0033_out_of_range.toml
+line: 30

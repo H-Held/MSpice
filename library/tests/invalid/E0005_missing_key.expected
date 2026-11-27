@@ -1,0 +1,4 @@
+code: E0005
+message: missing required key `author` in [part]
+file: tests/invalid/E0005_missing_key.toml
+line: 4

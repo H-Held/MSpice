@@ -1,0 +1,4 @@
+code: E0090
+message: data file `data/missing.csv` not found
+file: tests/invalid/E0090_data_file_missing.toml
+line: 34

@@ -1,0 +1,4 @@
+code: E0012
+message: name `Resistance` of [[parameters]] entry 1 is not valid
+file: tests/invalid/E0012_invalid_name.toml
+line: 27

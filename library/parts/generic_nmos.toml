@@ -1,0 +1,113 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_nmos"
+name = "N-channel MOSFET"
+version = "0.1.0"
+category = "semiconductor/mosfet"
+description = """
+N-channel enhancement MOSFET with the SPICE level 1 (Shichman-Hodges) model,
+body connected to the source. The defaults are round example values for a
+small logic-level switching MOSFET. The body diode is not part of the level 1
+model; add a generic_diode in a subcircuit if it matters."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["mosfet", "nmos", "transistor"]
+
+[part.source]
+kind = "textbook"
+title = "Shichman-Hodges (SPICE level 1) MOSFET equations; round example values"
+
+[[pins]]
+name = "d"
+role = "analog"
+description = "Drain"
+
+[[pins]]
+name = "g"
+role = "analog"
+description = "Gate"
+
+[[pins]]
+name = "s"
+role = "analog"
+description = "Source (also body)"
+
+[[parameters]]
+name = "v_threshold"
+type = "real"
+unit = "V"
+default = "2 V"
+min = "0 V"
+tolerance = { absolute = "0.5 V", distribution = "uniform" }
+
+[[parameters]]
+name = "k_p"
+type = "real"
+unit = "A/V^2"
+default = 0.1
+min = 0
+description = "Transconductance parameter (W/L = 1)"
+
+[[parameters]]
+name = "lambda"
+type = "real"
+unit = "1/V"
+default = 0.01
+min = 0
+description = "Channel-length modulation"
+
+[[parameters]]
+name = "c_gs"
+type = "real"
+unit = "F"
+default = "50 pF"
+min = 0
+description = "Gate-source overlap capacitance (per metre of W in SPICE; W = 1 m here)"
+
+[[parameters]]
+name = "c_gd"
+type = "real"
+unit = "F"
+default = "10 pF"
+min = 0
+
+[model]
+kind = "primitive"
+element = "M"
+polarity = "nmos"
+nodes = ["d", "g", "s"]
+params = { vto = "{v_threshold}", kp = "{k_p}", lambda = "{lambda}", cgso = "{c_gs}", cgdo = "{c_gd}", w = "1 m", l = "1 m" }
+
+[[tests]]
+name = "saturation_current"
+description = "Vgs = 4 V, Vds = 5 V: Id = k_p / 2 * (Vgs - Vt)^2 * (1 + lambda * Vds) = 0.21 A"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vgs"
+nodes = ["g", "s"]
+source = "voltage"
+waveform = "dc"
+value = "4 V"
+
+[[tests.stimulus]]
+name = "vds"
+nodes = ["d", "s"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vs"
+nodes = ["s", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(d)"
+value = "0.21 A"
+rel_tol = 0.01

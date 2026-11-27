@@ -1,0 +1,4 @@
+code: E0070
+message: unknown parameter `tc` for element `R` (resistor)
+file: tests/invalid/E0070_unknown_element_param.toml
+line: 36

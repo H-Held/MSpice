@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_noise_ripple"
+name = "Supply ripple source"
+version = "0.1.0"
+category = "noise/ripple"
+description = """
+Periodic voltage ripple in series with a supply line, for example the output
+ripple of a switching regulator (triangle, tens to hundreds of kHz). Place it
+between the regulator output and the load. For mains-frequency ripple of a
+rectifier, copy the part and set shape = "full_wave" and 100 Hz or 120 Hz."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["noise", "ripple", "interference", "supply"]
+
+[part.source]
+kind = "estimate"
+title = "Triangular ripple as produced by an inductor current ripple through output capacitor ESR"
+
+[[pins]]
+name = "p"
+role = "analog"
+description = "Positive side (towards the load)"
+
+[[pins]]
+name = "n"
+role = "analog"
+description = "Negative side (towards the supply)"
+
+[[parameters]]
+name = "amplitude"
+type = "real"
+unit = "V"
+default = "20 mV"
+min = 0
+description = "Peak value (half of peak-to-peak)"
+
+[[parameters]]
+name = "frequency"
+type = "real"
+unit = "Hz"
+default = "500 kHz"
+min = "1 mHz"
+
+[[parameters]]
+name = "offset"
+type = "real"
+unit = "V"
+default = 0
+description = "DC part of the source"
+
+[model]
+kind = "noise_source"
+
+[model.noise]
+type = "ripple"
+output = "voltage"
+nodes = ["p", "n"]
+amplitude = "{amplitude}"
+frequency = "{frequency}"
+offset = "{offset}"
+shape = "triangle"
+
+[[tests]]
+name = "peak_values"
+description = "Over 10 periods the voltage stays within +-amplitude"
+analysis = "tran"
+stop = "20 us"
+step = "10 ns"
+
+[[tests.elements]]
+name = "Rload"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "1 kOhm" }
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(p, n)"
+min = "-20.1 mV"
+max = "20.1 mV"
+
+[[tests.expect]]
+probe = "V(p, n)"
+at = "0.5 us"
+value = "20 mV"
+abs_tol = "0.5 mV"
+description = "A triangle that starts at 0 rising reaches its peak after a quarter period"

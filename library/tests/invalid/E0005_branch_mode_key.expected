@@ -1,0 +1,4 @@
+code: E0005
+message: missing required key `input` in branch `main` (mode `curve`)
+file: tests/invalid/E0005_branch_mode_key.toml
+line: 43

@@ -1,0 +1,4 @@
+code: W0083
+message: suffix `M` in `r` in [model] (`R`, resistor) means milli (1e-3) in SPICE expressions
+file: tests/invalid/W0083_suffix_m.toml
+line: 36

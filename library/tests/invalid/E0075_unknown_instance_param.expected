@@ -1,0 +1,4 @@
+code: E0075
+message: unknown parameter `resistence` in `params` of test `ohms_law`
+file: tests/invalid/E0075_unknown_instance_param.toml
+line: 41

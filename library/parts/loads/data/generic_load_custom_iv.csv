@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# Example current-voltage curve for generic_load_custom (illustration only).
+voltage,current
+V,A
+0,0
+1,0.001
+2,0.0025
+3,0.004
+4,0.006
+5,0.008

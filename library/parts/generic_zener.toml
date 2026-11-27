@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_zener"
+name = "Zener diode"
+version = "0.1.0"
+category = "semiconductor/diode"
+description = """
+Zener diode as a junction diode whose reverse breakdown voltage equals the
+Zener voltage at the test current. The dynamic resistance in breakdown is set
+by `r_series`. The temperature coefficient of the Zener voltage is not
+modelled."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["diode", "zener", "reference"]
+
+[part.source]
+kind = "textbook"
+title = "SPICE diode breakdown parameters BV and IBV used to describe a Zener diode"
+
+[[pins]]
+name = "a"
+role = "analog"
+description = "Anode"
+
+[[pins]]
+name = "k"
+role = "analog"
+description = "Cathode"
+
+[[parameters]]
+name = "v_zener"
+type = "real"
+unit = "V"
+default = "5.1 V"
+min = "1 V"
+max = "200 V"
+tolerance = { relative = 0.05, distribution = "uniform" }
+description = "Zener voltage at i_test"
+
+[[parameters]]
+name = "i_test"
+type = "real"
+unit = "A"
+default = "5 mA"
+min = "1 uA"
+description = "Test current of v_zener"
+
+[[parameters]]
+name = "r_series"
+type = "real"
+unit = "Ohm"
+default = "5 Ohm"
+min = 0
+description = "Series and dynamic resistance"
+
+[model]
+kind = "primitive"
+element = "D"
+nodes = ["a", "k"]
+params = { is = "1 pA", n = 1.0, rs = "{r_series}", bv = "{v_zener}", ibv = "{i_test}", cjo = "50 pF" }
+
+[[tests]]
+name = "breakdown_at_test_current"
+description = "Reverse current 5 mA: V(k, a) = v_zener + i_test * r_series"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "i1"
+nodes = ["0", "k"]
+source = "current"
+waveform = "dc"
+value = "5 mA"
+
+[[tests.stimulus]]
+name = "va"
+nodes = ["a", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(k, a)"
+value = "5.125 V"
+abs_tol = "50 mV"

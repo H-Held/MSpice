@@ -1,0 +1,4 @@
+code: E0082
+message: `rising()` can only be used in `on` of a transition
+file: tests/invalid/E0082_rising_outside_on.toml
+line: 43

@@ -1,0 +1,4 @@
+code: E0006
+message: `abs_max_voltage` in pin `p` must be a number or quantity, not an expression
+file: tests/invalid/E0006_expression_not_allowed.toml
+line: 21

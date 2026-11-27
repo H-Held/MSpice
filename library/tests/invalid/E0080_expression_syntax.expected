@@ -1,0 +1,4 @@
+code: E0080
+message: syntax error in `r` in [model] (`R`, resistor): expression ends too early
+file: tests/invalid/E0080_expression_syntax.toml
+line: 36

@@ -1,0 +1,4 @@
+code: E0093
+message: column `currnet` not found in `tests/invalid/data/iv.csv`
+file: tests/invalid/E0093_column_missing.toml
+line: 36

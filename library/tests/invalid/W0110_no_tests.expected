@@ -1,0 +1,4 @@
+code: W0110
+message: part has no reference tests
+file: tests/invalid/W0110_no_tests.toml
+line: 5

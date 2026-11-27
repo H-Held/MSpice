@@ -1,0 +1,4 @@
+code: E0021
+message: SPICE model licence `LicenseRef-Proprietary` is not an accepted open licence
+file: tests/invalid/E0021_spice_model_license.toml
+line: 18

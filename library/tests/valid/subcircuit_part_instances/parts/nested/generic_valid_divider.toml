@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_divider"
+name = "Divider from leaf parts"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Divider from leaf parts."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "r_top"
+type = "real"
+unit = "Ohm"
+default = "1 kOhm"
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["mid"]
+
+[[model.elements]]
+name = "X1"
+part = "generic_valid_leaf"
+nodes = ["p", "mid"]
+params = { resistance = "{r_top}" }
+features = { thermal = true }
+
+[[model.elements]]
+name = "X2"
+part = "generic_valid_leaf"
+nodes = { n = "n", p = "mid" }
+params = { resistance = "2 kOhm" }
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

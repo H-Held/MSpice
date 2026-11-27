@@ -1,0 +1,4 @@
+code: E0007
+message: `role` in pin `p` must be one of `power`, `ground`, `input`, `output`, `bidirectional`, `analog`, found `pwr`
+file: tests/invalid/E0007_bad_choice.toml
+line: 20

@@ -1,0 +1,4 @@
+code: E0010
+message: invalid part id `WS2812B`
+file: tests/invalid/E0010_part_id.toml
+line: 5

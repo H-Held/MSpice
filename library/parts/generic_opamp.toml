@@ -1,0 +1,155 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_opamp"
+name = "Operational amplifier"
+version = "0.1.0"
+category = "analog/opamp"
+description = """
+Voltage-feedback operational amplifier as a behavioral macromodel: open-loop
+gain with one dominant pole (set by the gain-bandwidth product), output
+limited to the supply rails minus a headroom, output resistance and a
+constant supply current. The output stage is referenced to global ground and
+does not draw its load current from the supply pins. The output is limited
+before the pole, so recovery from saturation has no wind-up. Not modelled:
+slew-rate limit, input offset, bias currents, common-mode range, output
+current limit, noise."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["opamp", "amplifier", "behavioral"]
+
+[part.source]
+kind = "textbook"
+title = "Single-pole operational amplifier macromodel"
+
+[[pins]]
+name = "inp"
+role = "input"
+description = "Non-inverting input"
+
+[[pins]]
+name = "inn"
+role = "input"
+description = "Inverting input"
+
+[[pins]]
+name = "out"
+role = "output"
+driver = "push_pull"
+
+[[pins]]
+name = "vpos"
+role = "power"
+description = "Positive supply"
+
+[[pins]]
+name = "vneg"
+role = "power"
+description = "Negative supply (or ground for single supply)"
+
+[[parameters]]
+name = "a_ol"
+type = "real"
+unit = "1"
+default = 1e5
+min = 1
+description = "DC open-loop gain (1e5 = 100 dB)"
+
+[[parameters]]
+name = "gbw"
+type = "real"
+unit = "Hz"
+default = "1 MHz"
+min = "1 Hz"
+description = "Gain-bandwidth product"
+
+[[parameters]]
+name = "r_out"
+type = "real"
+unit = "Ohm"
+default = "50 Ohm"
+min = 0
+
+[[parameters]]
+name = "v_headroom"
+type = "real"
+unit = "V"
+default = "1.5 V"
+min = 0
+description = "Output swing limit below vpos and above vneg (0 for rail-to-rail)"
+
+[[parameters]]
+name = "i_supply"
+type = "real"
+unit = "A"
+default = "1 mA"
+min = 0
+description = "Quiescent supply current from vpos to vneg"
+
+[model]
+kind = "behavioral"
+
+[[model.signals]]
+name = "v_target"
+expr = "limit(a_ol * V(inp, inn) + (V(vpos) + V(vneg)) / 2, V(vneg) + v_headroom, V(vpos) - v_headroom)"
+tau = "{a_ol / (2 * pi * gbw)}"
+unit = "V"
+description = "Output voltage before the output resistance, with the dominant pole"
+
+[[model.outputs]]
+name = "out_stage"
+source = "voltage"
+nodes = ["out", "0"]
+expr = "v_target"
+r_out = "{r_out}"
+
+[[model.elements]]
+name = "Bsupply"
+type = "B"
+source = "current"
+nodes = ["vpos", "vneg"]
+expr = "i_supply"
+
+[[tests]]
+name = "voltage_follower"
+description = "Output tied to the inverting input: V(out) follows 1 V within a_ol^-1"
+analysis = "op"
+
+[[tests.elements]]
+name = "Rfb"
+type = "R"
+nodes = ["out", "inn"]
+params = { r = "1 Ohm" }
+
+[[tests.stimulus]]
+name = "vin"
+nodes = ["inp", "0"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vp"
+nodes = ["vpos", "0"]
+source = "voltage"
+waveform = "dc"
+value = "15 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["vneg", "0"]
+source = "voltage"
+waveform = "dc"
+value = "-15 V"
+
+[[tests.expect]]
+probe = "V(out)"
+value = "1 V"
+abs_tol = "1 mV"
+
+[[tests.expect]]
+probe = "I(vpos)"
+value = "1 mA"
+rel_tol = 0.01

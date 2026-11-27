@@ -1,0 +1,4 @@
+code: E0061
+message: feature requirements form a cycle: `esl` -> `esr` -> `esl`
+file: tests/invalid/E0061_feature_cycle.toml
+line: 35

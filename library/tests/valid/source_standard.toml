@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_standard_source"
+name = "Standard as source"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Standard as source."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "datasheet"
+
+[part.source]
+kind = "standard"
+title = "Example standard (fictitious, used only by validator tests)"
+revision = "2020"
+section = "Clause 4"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "resistance"
+type = "real"
+unit = "Ohm"
+default = "1 kOhm"
+
+[model]
+kind = "primitive"
+element = "R"
+nodes = ["p", "n"]
+params = { r = "{resistance}" }
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

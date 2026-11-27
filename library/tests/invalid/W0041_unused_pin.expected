@@ -1,0 +1,4 @@
+code: W0041
+message: pin `sense` is not used by the model
+file: tests/invalid/W0041_unused_pin.toml
+line: 27

@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: LicenseRef-Apache-2.0-with-Commons-Clause
+# Copyright 2026 The MSpice Authors
+#
+# Builds the library validator, runs its tests and validates the part library.
+name: library
+
+on:
+  push:
+    paths:
+      - "library/**"
+      - ".github/workflows/library.yml"
+  pull_request:
+    paths:
+      - "library/**"
+      - ".github/workflows/library.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  libcheck:
+    name: libcheck (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja --no-progress -y
+
+      - name: Set up MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+
+      - name: Configure
+        run: cmake -S library/tools/libcheck -B build/libcheck -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/libcheck
+
+      - name: Test
+        run: ctest --test-dir build/libcheck --output-on-failure
+
+      - name: Validate the part library
+        shell: bash
+        run: build/libcheck/mspice-libcheck check --deny-warnings library/

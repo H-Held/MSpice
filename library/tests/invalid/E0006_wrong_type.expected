@@ -1,0 +1,4 @@
+code: E0006
+message: `adjustable` in [[parameters]] entry 1 must be a boolean (true or false), found a string
+file: tests/invalid/E0006_wrong_type.toml
+line: 31

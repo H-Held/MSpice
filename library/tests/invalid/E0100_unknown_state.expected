@@ -1,0 +1,4 @@
+code: E0100
+message: unknown state `bsuy` in `to` of [[model.state_machine.transitions]] entry 1
+file: tests/invalid/E0100_unknown_state.toml
+line: 67

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mspice/mspice/library/schema/library.schema.json",
+  "title": "MSpice library manifest (library.toml), format 0.1",
+  "description": "Data model of a library manifest (TOML converted to JSON). The reference is library/SPEC.md sections 2 and 3 and the validator mspice-libcheck.",
+  "type": "object",
+  "required": ["format_version", "library"],
+  "additionalProperties": false,
+  "properties": {
+    "format_version": { "const": "0.1" },
+    "library": {
+      "type": "object",
+      "required": ["name", "version", "description", "license", "parts"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+        "version": { "$ref": "#/$defs/semver" },
+        "description": { "type": "string" },
+        "license": { "enum": ["CC-BY-4.0", "CC0-1.0"] },
+        "authors": { "type": "array", "items": { "type": "string" } },
+        "parts": {
+          "description": "Paths or glob patterns relative to the manifest; `*`, `?` and `**` are supported.",
+          "type": "array", "items": { "type": "string", "minLength": 1 }
+        },
+        "exclude": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+          "path": { "type": "string", "description": "Directory with a library.toml, or the manifest itself, relative to this manifest." },
+          "version": {
+            "type": "string",
+            "description": "Comma-separated comparators: =, >, >=, <, <=, ^, ~ followed by a semantic version.",
+            "pattern": "^\\s*(=|>=|<=|>|<|\\^|~)?\\s*[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?\\s*(,\\s*(=|>=|<=|>|<|\\^|~)?\\s*[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?\\s*)*$"
+          }
+        }
+      }
+    },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "library", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^generic_[a-z0-9_]+$" },
+          "library": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semver": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$" }
+  }
+}

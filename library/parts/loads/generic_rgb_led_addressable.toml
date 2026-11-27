@@ -1,0 +1,328 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_rgb_led_addressable"
+name = "Addressable RGB LED with single-wire NRZ input"
+version = "0.1.0"
+category = "load/led"
+description = """
+RGB LED with integrated driver that is controlled through a single-wire NRZ
+protocol: each bit starts with a high pulse whose length encodes 0 (short) or
+1 (long); 24 bits (green, red, blue; 8 bits each, most significant bit first)
+set the colour; a low phase longer than t_reset latches the colour. Bits
+after the first 24 are passed on at dout to the next LED.
+
+Supply current: a constant logic current plus one current per colour channel,
+proportional to the 8-bit colour value. The internal PWM of the LED channels
+(a few hundred Hz to a few kHz) is averaged, not simulated. The data output
+repeats the input level instead of regenerating the pulse timing.
+
+Timing values are the nominal values found in public datasheets of
+compatible devices; current values are author estimates. Check them against
+the datasheet of the device you use (reset time differs between revisions:
+50 us in early documents, 280 us in later ones)."""
+compatible = ["WS2812B"]
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["led", "rgb", "addressable", "protocol", "state-machine"]
+
+[part.source]
+kind = "datasheet"
+title = "WS2812B intelligent control LED integrated light source (protocol timing)"
+vendor = "Worldsemi"
+section = "Data transfer time, sequence chart"
+notes = "Revision not recorded; currents are estimates. Values must be checked before quality can be raised to datasheet."
+
+[[pins]]
+name = "vdd"
+role = "power"
+reference = "gnd"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[pins]]
+name = "din"
+role = "input"
+description = "Serial data in"
+
+[[pins]]
+name = "dout"
+role = "output"
+driver = "push_pull"
+description = "Serial data out to the next LED"
+
+[[parameters]]
+name = "i_logic"
+type = "real"
+unit = "A"
+default = "1 mA"
+min = 0
+description = "Supply current with all channels off (estimate)"
+
+[[parameters]]
+name = "i_red"
+type = "real"
+unit = "A"
+default = "12 mA"
+min = 0
+description = "Red channel current at value 255 (estimate)"
+
+[[parameters]]
+name = "i_green"
+type = "real"
+unit = "A"
+default = "12 mA"
+min = 0
+description = "Green channel current at value 255 (estimate)"
+
+[[parameters]]
+name = "i_blue"
+type = "real"
+unit = "A"
+default = "12 mA"
+min = 0
+description = "Blue channel current at value 255 (estimate)"
+
+[[parameters]]
+name = "t_bit_threshold"
+type = "real"
+unit = "s"
+default = "0.6 us"
+min = "0.1 us"
+max = "2 us"
+description = "High time that separates a 0 bit (nominal 0.4 us) from a 1 bit (nominal 0.8 us)"
+
+[[parameters]]
+name = "t_reset"
+type = "real"
+unit = "s"
+default = "280 us"
+min = "1 us"
+description = "Low time that latches the received colour"
+
+[[parameters]]
+name = "r_dout"
+type = "real"
+unit = "Ohm"
+default = "50 Ohm"
+min = "1 Ohm"
+description = "Output resistance of dout (estimate)"
+
+[model]
+kind = "load"
+
+[[model.branches]]
+name = "logic"
+nodes = ["vdd", "gnd"]
+mode = "fixed"
+value = "{i_logic}"
+
+[[model.branches]]
+name = "red_channel"
+nodes = ["vdd", "gnd"]
+mode = "formula"
+expr = "i_red * red / 255"
+
+[[model.branches]]
+name = "green_channel"
+nodes = ["vdd", "gnd"]
+mode = "formula"
+expr = "i_green * green / 255"
+
+[[model.branches]]
+name = "blue_channel"
+nodes = ["vdd", "gnd"]
+mode = "formula"
+expr = "i_blue * blue / 255"
+
+[[model.outputs]]
+name = "data_out"
+source = "voltage"
+nodes = ["dout", "gnd"]
+expr = "(bit_count >= 24 && in_state(high)) ? V(vdd, gnd) : 0"
+r_out = "{r_dout}"
+
+[model.state_machine]
+initial = "idle"
+description = "Decodes the NRZ bit stream; colour is latched after t_reset of low level"
+
+[[model.state_machine.variables]]
+name = "bit"
+init = 0
+
+[[model.state_machine.variables]]
+name = "bit_count"
+init = 0
+description = "Bits received since the last latch (counts up to 24)"
+
+[[model.state_machine.variables]]
+name = "shift"
+init = 0
+description = "Received bits as an integer, GRB order"
+
+[[model.state_machine.variables]]
+name = "red"
+init = 0
+
+[[model.state_machine.variables]]
+name = "green"
+init = 0
+
+[[model.state_machine.variables]]
+name = "blue"
+init = 0
+
+[[model.state_machine.inputs]]
+name = "din_level"
+expr = "V(din, gnd)"
+high = "{0.7 * V(vdd, gnd)}"
+low = "{0.3 * V(vdd, gnd)}"
+description = "Input thresholds at 0.7 and 0.3 times the supply voltage"
+
+[[model.state_machine.states]]
+name = "idle"
+description = "Line low, colour latched, waiting for the first bit"
+
+[[model.state_machine.states]]
+name = "high"
+description = "High part of a bit"
+
+[[model.state_machine.states]]
+name = "low"
+description = "Low part of a bit; becomes a reset if it lasts t_reset"
+
+[[model.state_machine.transitions]]
+from = "idle"
+to = "high"
+on = "rising(din_level)"
+
+[[model.state_machine.transitions]]
+from = "low"
+to = "high"
+on = "rising(din_level)"
+
+[[model.state_machine.transitions]]
+from = "high"
+to = "low"
+on = "falling(din_level)"
+actions = [
+  "bit = time_in_state > t_bit_threshold ? 1 : 0",
+  "shift = bit_count < 24 ? shift * 2 + bit : shift",
+  "bit_count = bit_count < 24 ? bit_count + 1 : bit_count",
+]
+
+[[model.state_machine.transitions]]
+from = "low"
+to = "idle"
+after = "{t_reset}"
+description = "Reset: latch the colour if 24 bits were received"
+actions = [
+  "green = bit_count >= 24 ? floor(shift / 65536) : green",
+  "red = bit_count >= 24 ? floor(shift / 256) - 256 * floor(shift / 65536) : red",
+  "blue = bit_count >= 24 ? shift - 256 * floor(shift / 256) : blue",
+  "bit_count = 0",
+  "shift = 0",
+]
+
+[[tests]]
+name = "idle_current"
+description = "After power-up all channels are off: only the logic current flows"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vdin"
+nodes = ["din", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(vdd)"
+value = "1 mA"
+rel_tol = 0.01
+
+[[tests]]
+name = "set_red"
+description = "Send G=0, R=255, B=0, then reset: supply current rises by i_red after the latch"
+analysis = "tran"
+stop = "400 us"
+step = "10 ns"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vdin"
+nodes = ["din", "gnd"]
+source = "voltage"
+waveform = "pwl"
+points = [
+  [0, 0], [1e-05, 0], [1.002e-05, 5], [1.04e-05, 5],
+  [1.042e-05, 0], [1.125e-05, 0], [1.127e-05, 5], [1.165e-05, 5],
+  [1.167e-05, 0], [1.25e-05, 0], [1.252e-05, 5], [1.29e-05, 5],
+  [1.292e-05, 0], [1.375e-05, 0], [1.377e-05, 5], [1.415e-05, 5],
+  [1.417e-05, 0], [1.5e-05, 0], [1.502e-05, 5], [1.54e-05, 5],
+  [1.542e-05, 0], [1.625e-05, 0], [1.627e-05, 5], [1.665e-05, 5],
+  [1.667e-05, 0], [1.75e-05, 0], [1.752e-05, 5], [1.79e-05, 5],
+  [1.792e-05, 0], [1.875e-05, 0], [1.877e-05, 5], [1.915e-05, 5],
+  [1.917e-05, 0], [2e-05, 0], [2.002e-05, 5], [2.08e-05, 5],
+  [2.082e-05, 0], [2.125e-05, 0], [2.127e-05, 5], [2.205e-05, 5],
+  [2.207e-05, 0], [2.25e-05, 0], [2.252e-05, 5], [2.33e-05, 5],
+  [2.332e-05, 0], [2.375e-05, 0], [2.377e-05, 5], [2.455e-05, 5],
+  [2.457e-05, 0], [2.5e-05, 0], [2.502e-05, 5], [2.58e-05, 5],
+  [2.582e-05, 0], [2.625e-05, 0], [2.627e-05, 5], [2.705e-05, 5],
+  [2.707e-05, 0], [2.75e-05, 0], [2.752e-05, 5], [2.83e-05, 5],
+  [2.832e-05, 0], [2.875e-05, 0], [2.877e-05, 5], [2.955e-05, 5],
+  [2.957e-05, 0], [3e-05, 0], [3.002e-05, 5], [3.04e-05, 5],
+  [3.042e-05, 0], [3.125e-05, 0], [3.127e-05, 5], [3.165e-05, 5],
+  [3.167e-05, 0], [3.25e-05, 0], [3.252e-05, 5], [3.29e-05, 5],
+  [3.292e-05, 0], [3.375e-05, 0], [3.377e-05, 5], [3.415e-05, 5],
+  [3.417e-05, 0], [3.5e-05, 0], [3.502e-05, 5], [3.54e-05, 5],
+  [3.542e-05, 0], [3.625e-05, 0], [3.627e-05, 5], [3.665e-05, 5],
+  [3.667e-05, 0], [3.75e-05, 0], [3.752e-05, 5], [3.79e-05, 5],
+  [3.792e-05, 0], [3.875e-05, 0], [3.877e-05, 5], [3.915e-05, 5],
+  [3.917e-05, 0], [4e-05, 0],
+]
+
+[[tests.expect]]
+probe = "I(vdd)"
+at = "30 us"
+value = "1 mA"
+rel_tol = 0.01
+description = "Bits are still arriving; nothing latched yet"
+
+[[tests.expect]]
+probe = "I(vdd)"
+at = "380 us"
+value = "13 mA"
+rel_tol = 0.01
+description = "Last bit ends at 40 us; latch at 40 us + t_reset = 320 us"

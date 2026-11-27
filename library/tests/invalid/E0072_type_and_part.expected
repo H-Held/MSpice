@@ -1,0 +1,4 @@
+code: E0072
+message: element `R1` sets both `type` and `part`
+file: tests/invalid/E0072_type_and_part.toml
+line: 36

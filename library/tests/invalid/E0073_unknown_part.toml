@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_test_resistor"
+name = "Test resistor"
+version = "0.1.0"
+category = "passive/resistor"
+description = "Fixture for validator tests."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "resistance"
+type = "real"
+unit = "Ohm"
+default = "1 kOhm"
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["mid"]
+
+[[model.elements]]
+name = "R1"
+type = "R"
+nodes = ["p", "mid"]
+params = { r = "{resistance / 2}" }
+
+[[model.elements]]
+name = "X2"
+part = "generic_resistr"
+nodes = ["mid", "n"]
+
+[[tests]]
+name = "ohms_law"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.expect]]
+probe = "I(p)"
+value = "1 mA"
+rel_tol = 0.001

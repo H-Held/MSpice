@@ -1,0 +1,4 @@
+code: E0004
+message: key `frequency` is not used by noise type `white`
+file: tests/invalid/E0004_key_not_for_noise_type.toml
+line: 41

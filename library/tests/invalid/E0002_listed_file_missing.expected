@@ -1,0 +1,4 @@
+code: E0002
+message: file `parts/missing.toml` listed in `parts` does not exist
+file: tests/invalid/E0002_listed_file_missing/library.toml
+line: 9

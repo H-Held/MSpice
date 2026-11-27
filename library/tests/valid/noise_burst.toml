@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_noise_burst"
+name = "Noise burst"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Noise burst."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+
+[model]
+kind = "noise_source"
+
+[model.noise]
+type = "burst"
+output = "voltage"
+nodes = ["p", "n"]
+amplitude = "5 mV"
+rate = "10 Hz"
+duration = "1 ms"
+rise_time = "1 us"
+seed = 3
+
+[[tests]]
+name = "bounded"
+analysis = "tran"
+stop = "1 ms"
+
+[[tests.elements]]
+name = "Rl"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "1 kOhm" }
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(p, n)"
+min = "-3 kV"
+max = "3 kV"

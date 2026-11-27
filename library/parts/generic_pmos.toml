@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_pmos"
+name = "P-channel MOSFET"
+version = "0.1.0"
+category = "semiconductor/mosfet"
+description = """
+P-channel enhancement MOSFET with the SPICE level 1 (Shichman-Hodges) model,
+body connected to the source. Complement of generic_nmos with round example
+values; the body diode is not part of the model."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["mosfet", "pmos", "transistor"]
+
+[part.source]
+kind = "textbook"
+title = "Shichman-Hodges (SPICE level 1) MOSFET equations; round example values"
+
+[[pins]]
+name = "d"
+role = "analog"
+description = "Drain"
+
+[[pins]]
+name = "g"
+role = "analog"
+description = "Gate"
+
+[[pins]]
+name = "s"
+role = "analog"
+description = "Source (also body)"
+
+[[parameters]]
+name = "v_threshold"
+type = "real"
+unit = "V"
+default = "-2 V"
+max = "0 V"
+tolerance = { absolute = "0.5 V", distribution = "uniform" }
+
+[[parameters]]
+name = "k_p"
+type = "real"
+unit = "A/V^2"
+default = 0.1
+min = 0
+
+[[parameters]]
+name = "lambda"
+type = "real"
+unit = "1/V"
+default = 0.01
+min = 0
+
+[[parameters]]
+name = "c_gs"
+type = "real"
+unit = "F"
+default = "80 pF"
+min = 0
+
+[[parameters]]
+name = "c_gd"
+type = "real"
+unit = "F"
+default = "15 pF"
+min = 0
+
+[model]
+kind = "primitive"
+element = "M"
+polarity = "pmos"
+nodes = ["d", "g", "s"]
+params = { vto = "{v_threshold}", kp = "{k_p}", lambda = "{lambda}", cgso = "{c_gs}", cgdo = "{c_gd}", w = "1 m", l = "1 m" }
+
+[[tests]]
+name = "saturation_current"
+description = "Vgs = -4 V, Vds = -5 V: Id = -0.21 A (current flows out of the drain)"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vgs"
+nodes = ["g", "s"]
+source = "voltage"
+waveform = "dc"
+value = "-4 V"
+
+[[tests.stimulus]]
+name = "vds"
+nodes = ["d", "s"]
+source = "voltage"
+waveform = "dc"
+value = "-5 V"
+
+[[tests.stimulus]]
+name = "vs"
+nodes = ["s", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(d)"
+value = "-0.21 A"
+rel_tol = 0.01

@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[library]
+name = "e0121"
+version = "0.1.0"
+description = "Validator test library"
+license = "CC-BY-4.0"
+parts = ["parts/*.toml"]
+
+[[dependencies]]
+name = "other"
+path = "../no_such_library"

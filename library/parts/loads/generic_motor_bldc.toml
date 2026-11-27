@@ -1,0 +1,216 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_motor_bldc"
+name = "BLDC motor with integrated driver (simplified)"
+version = "0.1.0"
+category = "motor/bldc"
+description = """
+Brushless DC motor with integrated commutation electronics, as found in fans
+and small pumps, seen from its two supply pins. Simplification: ideal
+commutation turns the motor into an equivalent DC motor (winding resistance
+and inductance of the conducting phase pair, back-EMF constant, torque
+constant). The driver adds a constant quiescent current. The FG (frequency
+generator) output gives pole_pairs pulses per revolution.
+
+Not modelled: phase currents and commutation ripple, PWM inside the driver,
+start-up sequence, locked-rotor protection."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["motor", "bldc", "electromechanical", "simplified"]
+
+[part.source]
+kind = "textbook"
+title = "Equivalent DC motor of an ideally commutated BLDC motor; round example values"
+
+[[pins]]
+name = "vplus"
+role = "power"
+reference = "gnd"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[pins]]
+name = "fg"
+role = "output"
+driver = "open_drain"
+description = "Speed output, pole_pairs pulses per revolution"
+
+[[parameters]]
+name = "r_phase"
+type = "real"
+unit = "Ohm"
+default = "4 Ohm"
+min = "1 mOhm"
+description = "Resistance of the conducting phase pair"
+
+[[parameters]]
+name = "l_phase"
+type = "real"
+unit = "H"
+default = "0.5 mH"
+min = "1 nH"
+
+[[parameters]]
+name = "k_e"
+type = "real"
+unit = "V*s/rad"
+default = 0.02
+min = 0
+
+[[parameters]]
+name = "k_t"
+type = "real"
+unit = "N*m/A"
+default = 0.02
+min = 0
+
+[[parameters]]
+name = "inertia"
+type = "real"
+unit = "kg*m^2"
+default = 2e-5
+min = 1e-12
+
+[[parameters]]
+name = "friction"
+type = "real"
+unit = "N*m*s/rad"
+default = 2e-6
+min = 1e-12
+
+[[parameters]]
+name = "t_load"
+type = "real"
+unit = "N*m"
+default = 0
+
+[[parameters]]
+name = "i_driver"
+type = "real"
+unit = "A"
+default = "5 mA"
+min = 0
+description = "Quiescent current of the integrated driver"
+
+[[parameters]]
+name = "pole_pairs"
+type = "integer"
+unit = "1"
+default = 2
+min = 1
+max = 32
+
+[[parameters]]
+name = "r_fg_on"
+type = "real"
+unit = "Ohm"
+default = "100 Ohm"
+min = "1 Ohm"
+
+[model]
+kind = "load"
+internal_nodes = ["n1", "n2", "omega"]
+
+[[model.elements]]
+name = "Rw"
+type = "R"
+nodes = ["vplus", "n1"]
+params = { r = "{r_phase}" }
+
+[[model.elements]]
+name = "Lw"
+type = "L"
+nodes = ["n1", "n2"]
+params = { l = "{l_phase}" }
+
+[[model.elements]]
+name = "Bemf"
+type = "B"
+source = "voltage"
+nodes = ["n2", "gnd"]
+expr = "k_e * max(V(omega), 0)"
+
+[[model.elements]]
+name = "Btorque"
+type = "B"
+source = "current"
+nodes = ["0", "omega"]
+expr = "k_t * max(I(Lw), 0) - t_load"
+description = "The driver only drives forward; it does not brake"
+
+[[model.elements]]
+name = "Cinertia"
+type = "C"
+nodes = ["omega", "0"]
+params = { c = "{inertia}" }
+
+[[model.elements]]
+name = "Rfriction"
+type = "R"
+nodes = ["omega", "0"]
+params = { r = "{1 / friction}" }
+
+[[model.branches]]
+name = "driver"
+nodes = ["vplus", "gnd"]
+mode = "fixed"
+value = "{i_driver}"
+
+[[model.outputs]]
+name = "fg_out"
+source = "switch"
+nodes = ["fg", "gnd"]
+expr = "in_state(fg_low)"
+ron = "{r_fg_on}"
+roff = "1e9 Ohm"
+
+[model.state_machine]
+initial = "fg_high"
+
+[[model.state_machine.states]]
+name = "fg_high"
+
+[[model.state_machine.states]]
+name = "fg_low"
+
+[[model.state_machine.transitions]]
+from = "fg_high"
+to = "fg_low"
+after = "{pi / (pole_pairs * max(V(omega), 0.1))}"
+description = "Half an electrical period: 2 * pi / (2 * pole_pairs * omega)"
+
+[[model.state_machine.transitions]]
+from = "fg_low"
+to = "fg_high"
+after = "{pi / (pole_pairs * max(V(omega), 0.1))}"
+
+[[tests]]
+name = "no_load_current"
+description = """
+12 V: omega = k_t * V / (R * b + k_t * k_e) = 0.24 / 4.08e-4 = 588.2 rad/s;
+i = (V - k_e * omega) / R = 58.8 mA, plus 5 mA driver current"""
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vplus", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "12 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(vplus)"
+value = "63.8 mA"
+rel_tol = 0.02

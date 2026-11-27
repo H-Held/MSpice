@@ -1,0 +1,4 @@
+code: E0072
+message: [[model.state_machine.transitions]] entry 2 has no trigger
+file: tests/invalid/E0072_transition_without_trigger.toml
+line: 71

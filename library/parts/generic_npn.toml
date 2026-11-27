@@ -1,0 +1,121 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_npn"
+name = "NPN small-signal transistor"
+version = "0.1.0"
+category = "semiconductor/bjt"
+description = """
+NPN bipolar transistor with the Gummel-Poon parameters of the SPICE BJT
+model. The defaults are round example values for a general-purpose
+small-signal transistor (current gain 200, Early voltage 100 V), not fitted
+to a product. High-injection and leakage effects are off by default."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["bjt", "npn", "transistor"]
+
+[part.source]
+kind = "textbook"
+title = "Gummel-Poon bipolar transistor model as used by SPICE; round example values"
+
+[[pins]]
+name = "c"
+role = "analog"
+description = "Collector"
+
+[[pins]]
+name = "b"
+role = "analog"
+description = "Base"
+
+[[pins]]
+name = "e"
+role = "analog"
+description = "Emitter"
+
+[[parameters]]
+name = "i_s"
+type = "real"
+unit = "A"
+default = "10e-15 A"
+min = "1e-30 A"
+description = "Transport saturation current"
+
+[[parameters]]
+name = "beta_f"
+type = "real"
+unit = "1"
+default = 200
+min = 1
+tolerance = { relative = 0.5, distribution = "uniform" }
+description = "Ideal forward current gain"
+
+[[parameters]]
+name = "v_early"
+type = "real"
+unit = "V"
+default = "100 V"
+min = "1 V"
+description = "Forward Early voltage"
+
+[[parameters]]
+name = "c_je"
+type = "real"
+unit = "F"
+default = "10 pF"
+min = 0
+
+[[parameters]]
+name = "c_jc"
+type = "real"
+unit = "F"
+default = "4 pF"
+min = 0
+
+[[parameters]]
+name = "t_forward"
+type = "real"
+unit = "s"
+default = "0.4 ns"
+min = 0
+description = "Forward transit time"
+
+[model]
+kind = "primitive"
+element = "Q"
+polarity = "npn"
+nodes = ["c", "b", "e"]
+params = { is = "{i_s}", bf = "{beta_f}", br = 4, vaf = "{v_early}", cje = "{c_je}", cjc = "{c_jc}", tf = "{t_forward}", tr = "50 ns", rb = "10 Ohm" }
+
+[[tests]]
+name = "collector_current"
+description = "Ib = 10 uA, Vce = 5 V: Ic is about beta_f * Ib * (1 + Vce / v_early)"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "ib"
+nodes = ["0", "b"]
+source = "current"
+waveform = "dc"
+value = "10 uA"
+
+[[tests.stimulus]]
+name = "vce"
+nodes = ["c", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "ve"
+nodes = ["e", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(c)"
+value = "2.09 mA"
+rel_tol = 0.05

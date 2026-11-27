@@ -1,0 +1,4 @@
+code: E0123
+message: part `generic_merge_shared` is defined by library `merge-test-base` (version 0.1.0, tests/merge/base/parts/generic_merge_shared.toml) and by library `merge-test-conflict` (version 0.1.0)
+file: tests/merge/conflict/parts/generic_merge_shared.toml
+line: 5

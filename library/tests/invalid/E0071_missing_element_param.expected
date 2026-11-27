@@ -1,0 +1,4 @@
+code: E0071
+message: element `R` (resistor) needs parameter `r` in [model] (`R`, resistor)
+file: tests/invalid/E0071_missing_element_param.toml
+line: 36

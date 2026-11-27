@@ -1,0 +1,4 @@
+code: E0123
+message: part `generic_test_resistor` is defined by library `base` (version 0.1.0, tests/invalid/E0123_merge_conflict/base/parts/generic_test_resistor.toml) and by library `app` (version 0.2.0)
+file: tests/invalid/E0123_merge_conflict/parts/generic_test_resistor.toml
+line: 5

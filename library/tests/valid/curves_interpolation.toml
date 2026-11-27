@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_curves"
+name = "Curves"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Curves."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[curves]]
+name = "gain_curve"
+file = "data/iv.csv"
+x = "voltage"
+y = "current"
+x_unit = "V"
+y_unit = "A"
+interpolation = "cubic"
+extrapolation = "linear"
+description = "Monotone cubic"
+
+[[curves]]
+name = "speed_curve"
+file = "data/table.csv"
+x = "duty"
+y = "speed"
+x_unit = "%"
+y_unit = "rpm"
+interpolation = "step"
+extrapolation = "zero"
+
+[[curves]]
+name = "time_curve"
+file = "data/table.csv"
+x = "time"
+y = "speed"
+x_unit = "s"
+y_unit = "rpm"
+interpolation = "linear"
+extrapolation = "error"
+
+[model]
+kind = "load"
+
+[[model.branches]]
+name = "by_function"
+nodes = ["p", "n"]
+mode = "formula"
+expr = "gain_curve(V(p, n)) * 1m + speed_curve(time * 1k) * 0"
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

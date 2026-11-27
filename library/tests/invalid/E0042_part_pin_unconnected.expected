@@ -1,0 +1,4 @@
+code: E0042
+message: pin `n` of part `generic_test_resistor` is not connected by element `X2`
+file: tests/invalid/E0042_part_pin_unconnected/parts/generic_test_divider.toml
+line: 45

@@ -1,0 +1,4 @@
+code: E0040
+message: unknown node `dinn` in V() in `expr` in input `din_level`
+file: tests/invalid/E0040_unknown_node_in_expression.toml
+line: 54

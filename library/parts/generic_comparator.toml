@@ -1,0 +1,201 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_comparator"
+name = "Comparator with open-drain output"
+version = "0.1.0"
+category = "analog/comparator"
+description = """
+Voltage comparator with an open-drain output to gnd: the output is off (high
+impedance) when inp is above inn plus the offset, and pulls low otherwise, as
+for the common open-collector comparators. The response time is modelled as
+a first-order delay of the internal decision. Not modelled: hysteresis (add
+it with external resistors), input bias currents, common-mode range."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["comparator", "behavioral", "open-drain"]
+
+[part.source]
+kind = "textbook"
+title = "Behavioral comparator with switch output"
+
+[[pins]]
+name = "inp"
+role = "input"
+
+[[pins]]
+name = "inn"
+role = "input"
+
+[[pins]]
+name = "out"
+role = "output"
+driver = "open_drain"
+abs_max_current = "20 mA"
+
+[[pins]]
+name = "vpos"
+role = "power"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[parameters]]
+name = "v_offset"
+type = "real"
+unit = "V"
+default = 0
+tolerance = { absolute = "5 mV", distribution = "normal", sigma = 3 }
+description = "Input offset voltage"
+
+[[parameters]]
+name = "t_response"
+type = "real"
+unit = "s"
+default = "300 ns"
+min = "1 ps"
+description = "Time constant of the decision (roughly the response time)"
+
+[[parameters]]
+name = "r_on"
+type = "real"
+unit = "Ohm"
+default = "50 Ohm"
+min = "1 mOhm"
+description = "Output on-resistance"
+
+[[parameters]]
+name = "i_supply"
+type = "real"
+unit = "A"
+default = "0.5 mA"
+min = 0
+
+[model]
+kind = "behavioral"
+
+[[model.signals]]
+name = "pull_low"
+expr = "V(inp, inn) > v_offset ? 0 : 1"
+tau = "{t_response}"
+description = "1 when the output transistor is on"
+
+[[model.outputs]]
+name = "out_switch"
+source = "switch"
+nodes = ["out", "gnd"]
+expr = "pull_low > 0.5"
+ron = "{r_on}"
+roff = "1e9 Ohm"
+
+[[model.elements]]
+name = "Bsupply"
+type = "B"
+source = "current"
+nodes = ["vpos", "gnd"]
+expr = "i_supply"
+
+[[tests]]
+name = "output_released"
+description = "inp above inn: output is pulled up to 5 V by 10 kOhm"
+analysis = "op"
+
+[[tests.elements]]
+name = "Rpu"
+type = "R"
+nodes = ["vcc", "out"]
+params = { r = "10 kOhm" }
+
+[[tests.stimulus]]
+name = "vcc"
+nodes = ["vcc", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vpos", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vp"
+nodes = ["inp", "0"]
+source = "voltage"
+waveform = "dc"
+value = "2 V"
+
+[[tests.stimulus]]
+name = "vm"
+nodes = ["inn", "0"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.expect]]
+probe = "V(out)"
+value = "5 V"
+abs_tol = "10 mV"
+
+[[tests]]
+name = "output_low"
+description = "inp below inn: output pulls low, 5 V * 50 / (10k + 50) = 25 mV"
+analysis = "op"
+
+[[tests.elements]]
+name = "Rpu"
+type = "R"
+nodes = ["vcc", "out"]
+params = { r = "10 kOhm" }
+
+[[tests.stimulus]]
+name = "vcc"
+nodes = ["vcc", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vpos", "0"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vp"
+nodes = ["inp", "0"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vm"
+nodes = ["inn", "0"]
+source = "voltage"
+waveform = "dc"
+value = "2 V"
+
+[[tests.expect]]
+probe = "V(out)"
+value = "25 mV"
+abs_tol = "2 mV"

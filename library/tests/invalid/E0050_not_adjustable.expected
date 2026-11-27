@@ -1,0 +1,4 @@
+code: E0050
+message: parameter `resistance` is not adjustable and cannot be set in test `ohms_law`
+file: tests/invalid/E0050_not_adjustable.toml
+line: 42

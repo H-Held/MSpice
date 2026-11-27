@@ -1,0 +1,4 @@
+code: E0111
+message: [[tests.expect]] entry 1 of test `ohms_law` has no tolerance
+file: tests/invalid/E0111_no_tolerance.toml
+line: 51

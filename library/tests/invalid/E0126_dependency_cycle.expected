@@ -1,0 +1,4 @@
+code: E0126
+message: dependency cycle: `lib-a` depends back on `lib-b`
+file: tests/invalid/E0126_dependency_cycle/b/library.toml
+line: 13

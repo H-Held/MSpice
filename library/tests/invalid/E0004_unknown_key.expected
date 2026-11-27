@@ -1,0 +1,4 @@
+code: E0004
+message: unknown key `nmae` in [part]
+file: tests/invalid/E0004_unknown_key.toml
+line: 6

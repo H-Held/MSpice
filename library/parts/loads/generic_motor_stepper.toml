@@ -1,0 +1,215 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_motor_stepper"
+name = "Two-phase bipolar stepper motor (simplified)"
+version = "0.1.0"
+category = "motor/stepper"
+description = """
+Hybrid stepper motor with two phases, simplified to the fundamental
+sinusoidal model with N = steps_per_rev / 4 rotor teeth:
+  v_A = R * i_A + L * di_A/dt - k_m * omega * sin(N * theta)
+  v_B = R * i_B + L * di_B/dt + k_m * omega * cos(N * theta)
+  J * d(omega)/dt = k_m * (-i_A * sin(N * theta) + i_B * cos(N * theta)) - b * omega - t_load
+  d(theta)/dt = omega
+The mechanical states are internal nodes (`omega` in rad/s, `theta` in rad,
+both 1 V = 1 unit). Not modelled: detent torque, saturation, mutual
+coupling between phases, resonance damping of real drives. The 1 GOhm
+resistor on `theta` only gives the operating point a defined value."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["motor", "stepper", "electromechanical", "simplified"]
+
+[part.source]
+kind = "textbook"
+title = "Fundamental-wave model of the two-phase hybrid stepper motor; round example values for a NEMA 17 size motor"
+
+[[pins]]
+name = "a1"
+role = "power"
+description = "Phase A start"
+
+[[pins]]
+name = "a2"
+role = "power"
+description = "Phase A end"
+
+[[pins]]
+name = "b1"
+role = "power"
+description = "Phase B start"
+
+[[pins]]
+name = "b2"
+role = "power"
+description = "Phase B end"
+
+[[parameters]]
+name = "r_phase"
+type = "real"
+unit = "Ohm"
+default = "2 Ohm"
+min = "1 mOhm"
+
+[[parameters]]
+name = "l_phase"
+type = "real"
+unit = "H"
+default = "3 mH"
+min = "1 nH"
+
+[[parameters]]
+name = "k_m"
+type = "real"
+unit = "N*m/A"
+default = 0.2
+min = 0
+description = "Torque constant per phase (equal to the back-EMF constant in SI units)"
+
+[[parameters]]
+name = "steps_per_rev"
+type = "integer"
+unit = "1"
+default = 200
+min = 4
+description = "Full steps per revolution; must be a multiple of 4"
+
+[[parameters]]
+name = "inertia"
+type = "real"
+unit = "kg*m^2"
+default = 5e-6
+min = 1e-12
+
+[[parameters]]
+name = "friction"
+type = "real"
+unit = "N*m*s/rad"
+default = 1e-4
+min = 1e-12
+
+[[parameters]]
+name = "t_load"
+type = "real"
+unit = "N*m"
+default = 0
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["na1", "na2", "nb1", "nb2", "omega", "theta"]
+
+[[model.elements]]
+name = "Ra"
+type = "R"
+nodes = ["a1", "na1"]
+params = { r = "{r_phase}" }
+
+[[model.elements]]
+name = "La"
+type = "L"
+nodes = ["na1", "na2"]
+params = { l = "{l_phase}" }
+
+[[model.elements]]
+name = "Bemf_a"
+type = "B"
+source = "voltage"
+nodes = ["na2", "a2"]
+expr = "-k_m * V(omega) * sin(steps_per_rev / 4 * V(theta))"
+
+[[model.elements]]
+name = "Rb"
+type = "R"
+nodes = ["b1", "nb1"]
+params = { r = "{r_phase}" }
+
+[[model.elements]]
+name = "Lb"
+type = "L"
+nodes = ["nb1", "nb2"]
+params = { l = "{l_phase}" }
+
+[[model.elements]]
+name = "Bemf_b"
+type = "B"
+source = "voltage"
+nodes = ["nb2", "b2"]
+expr = "k_m * V(omega) * cos(steps_per_rev / 4 * V(theta))"
+
+[[model.elements]]
+name = "Btorque"
+type = "B"
+source = "current"
+nodes = ["0", "omega"]
+expr = "k_m * (-I(La) * sin(steps_per_rev / 4 * V(theta)) + I(Lb) * cos(steps_per_rev / 4 * V(theta))) - t_load"
+
+[[model.elements]]
+name = "Cinertia"
+type = "C"
+nodes = ["omega", "0"]
+params = { c = "{inertia}" }
+
+[[model.elements]]
+name = "Rfriction"
+type = "R"
+nodes = ["omega", "0"]
+params = { r = "{1 / friction}" }
+
+[[model.elements]]
+name = "Bintegrate"
+type = "B"
+source = "current"
+nodes = ["0", "theta"]
+expr = "V(omega)"
+
+[[model.elements]]
+name = "Ctheta"
+type = "C"
+nodes = ["theta", "0"]
+params = { c = "1 F" }
+
+[[model.elements]]
+name = "Rtheta"
+type = "R"
+nodes = ["theta", "0"]
+params = { r = "1 GOhm" }
+
+[[tests]]
+name = "holding_current"
+description = "1 A in phase A at standstill: the phase voltage is i * R = 2 V"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "ia"
+nodes = ["0", "a1"]
+source = "current"
+waveform = "dc"
+value = "1 A"
+
+[[tests.stimulus]]
+name = "va2"
+nodes = ["a2", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vb"
+nodes = ["b1", "b2"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vb2"
+nodes = ["b2", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(a1, a2)"
+value = "2 V"
+rel_tol = 0.001

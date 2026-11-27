@@ -1,0 +1,208 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_led_strip"
+name = "LED strip with series resistors, fed from one end"
+version = "0.1.0"
+category = "load/led"
+description = """
+LED strip of the common kind with groups of LEDs and a series resistor per
+group (for example 12 V strips with three LEDs per group). Each group draws a
+current that rises linearly with the local supply voltage above the forward
+voltage of its LEDs (v_knee); at v_nominal it draws the rated current per
+metre. The copper of both supply rails has a resistance per metre, so the
+voltage and the brightness drop along the strip.
+
+The strip is split into 4 equal segments (fixed in this version; the
+segment count cannot be a parameter in format 0.1). `brightness` scales the
+current, as a PWM dimmer would on average."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["led", "strip", "voltage-drop"]
+
+[part.source]
+kind = "estimate"
+title = "Resistor-ballasted LED groups on resistive rails; values for a 12 V, 14.4 W/m strip"
+
+[[pins]]
+name = "vplus"
+role = "power"
+reference = "gnd"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[parameters]]
+name = "length"
+type = "real"
+unit = "m"
+default = "1 m"
+min = "0.01 m"
+max = "50 m"
+
+[[parameters]]
+name = "i_per_metre"
+type = "real"
+unit = "A/m"
+default = 1.2
+min = 0
+description = "Current per metre at v_nominal and full brightness"
+
+[[parameters]]
+name = "v_nominal"
+type = "real"
+unit = "V"
+default = "12 V"
+min = "1 V"
+
+[[parameters]]
+name = "v_knee"
+type = "real"
+unit = "V"
+default = "9 V"
+min = 0
+description = "Forward voltage of one LED group; below it the group is dark"
+
+[[parameters]]
+name = "r_rail"
+type = "real"
+unit = "Ohm/m"
+default = 0.1
+min = 0
+description = "Resistance of one rail per metre (the strip has two)"
+
+[[parameters]]
+name = "brightness"
+type = "real"
+unit = "1"
+default = 1.0
+min = 0
+max = 1
+
+[model]
+kind = "load"
+internal_nodes = ["p1", "p2", "p3", "p4", "g1", "g2", "g3", "g4"]
+
+[[model.elements]]
+name = "Rp1"
+type = "R"
+nodes = ["vplus", "p1"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.elements]]
+name = "Rp2"
+type = "R"
+nodes = ["p1", "p2"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.elements]]
+name = "Rp3"
+type = "R"
+nodes = ["p2", "p3"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.elements]]
+name = "Rp4"
+type = "R"
+nodes = ["p3", "p4"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.elements]]
+name = "Rg1"
+type = "R"
+nodes = ["g1", "gnd"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.elements]]
+name = "Rg2"
+type = "R"
+nodes = ["g2", "g1"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.elements]]
+name = "Rg3"
+type = "R"
+nodes = ["g3", "g2"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.elements]]
+name = "Rg4"
+type = "R"
+nodes = ["g4", "g3"]
+params = { r = "{max(r_rail * length / 4, 1e-6)}" }
+
+[[model.branches]]
+name = "segment1"
+nodes = ["p1", "g1"]
+mode = "formula"
+expr = "i_per_metre * length / 4 * brightness * max(V(p1, g1) - v_knee, 0) / (v_nominal - v_knee)"
+
+[[model.branches]]
+name = "segment2"
+nodes = ["p2", "g2"]
+mode = "formula"
+expr = "i_per_metre * length / 4 * brightness * max(V(p2, g2) - v_knee, 0) / (v_nominal - v_knee)"
+
+[[model.branches]]
+name = "segment3"
+nodes = ["p3", "g3"]
+mode = "formula"
+expr = "i_per_metre * length / 4 * brightness * max(V(p3, g3) - v_knee, 0) / (v_nominal - v_knee)"
+
+[[model.branches]]
+name = "segment4"
+nodes = ["p4", "g4"]
+mode = "formula"
+expr = "i_per_metre * length / 4 * brightness * max(V(p4, g4) - v_knee, 0) / (v_nominal - v_knee)"
+
+[[tests]]
+name = "one_metre_at_12v"
+description = "Without rail resistance 1.2 A; the rail drop (up to 0.14 V at the far end) reduces it to 1.157 A"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vplus", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "12 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(vplus)"
+value = "1.157 A"
+rel_tol = 0.005
+
+[[tests]]
+name = "half_brightness_short_strip"
+description = "0.5 m at brightness 0.5: about a quarter of the 1 m current"
+analysis = "op"
+params = { length = "0.5 m", brightness = 0.5 }
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vplus", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "12 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(vplus)"
+min = "0.28 A"
+max = "0.30 A"

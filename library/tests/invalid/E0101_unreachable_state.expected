@@ -1,0 +1,4 @@
+code: E0101
+message: state `orphan` cannot be reached from the initial state `idle`
+file: tests/invalid/E0101_unreachable_state.toml
+line: 66

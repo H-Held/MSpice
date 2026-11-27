@@ -1,0 +1,113 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_inductor"
+name = "Inductor"
+version = "0.1.0"
+category = "passive/inductor"
+description = """
+Linear inductor with optional winding resistance (feature `dcr`, on by
+default). Core saturation and core losses are not modelled."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["passive", "inductor"]
+
+[part.source]
+kind = "estimate"
+title = "Series R-L equivalent circuit; default DCR is an order-of-magnitude value for a small power inductor"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "inductance"
+type = "real"
+unit = "H"
+default = "10 uH"
+min = "1 pH"
+tolerance = { relative = 0.2, distribution = "uniform" }
+
+[[parameters]]
+name = "dcr"
+type = "real"
+unit = "Ohm"
+default = "50 mOhm"
+min = "1 uOhm"
+feature = "dcr"
+description = "DC resistance of the winding"
+
+[[features]]
+name = "dcr"
+description = "Winding resistance in series"
+default = true
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["n1"]
+
+[[model.elements]]
+name = "L1"
+type = "L"
+nodes = ["p", "n1"]
+params = { l = "{inductance}" }
+
+[[model.elements]]
+name = "Rdcr"
+type = "R"
+nodes = ["n1", "n"]
+params = { r = "{dcr}" }
+feature = "dcr"
+when_disabled = "short"
+
+[[tests]]
+name = "rl_step"
+description = "1 V step through 10 Ohm plus 50 mOhm DCR; tau = 10 uH / 10.05 Ohm = 995 ns"
+analysis = "tran"
+stop = "10 us"
+step = "10 ns"
+
+[[tests.elements]]
+name = "Rs"
+type = "R"
+nodes = ["vin", "p"]
+params = { r = "10 Ohm" }
+
+[[tests.stimulus]]
+name = "vstep"
+nodes = ["vin", "0"]
+source = "voltage"
+waveform = "pulse"
+v1 = 0
+v2 = "1 V"
+delay = 0
+rise = "1 ns"
+fall = "1 ns"
+width = "1 s"
+period = "2 s"
+
+[[tests.stimulus]]
+name = "vref"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+at = "995 ns"
+value = "62.9 mA"
+abs_tol = "1 mA"
+description = "1 V / 10.05 Ohm * (1 - 1/e)"
+
+[[tests.expect]]
+probe = "I(p)"
+at = "10 us"
+value = "99.5 mA"
+abs_tol = "0.5 mA"

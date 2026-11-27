@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: CC-BY-4.0
+time,voltage
+s,V
+0,0
+0.001,1
+0.002,0

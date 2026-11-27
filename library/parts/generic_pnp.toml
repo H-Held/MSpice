@@ -1,0 +1,116 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_pnp"
+name = "PNP small-signal transistor"
+version = "0.1.0"
+category = "semiconductor/bjt"
+description = """
+PNP bipolar transistor with the Gummel-Poon parameters of the SPICE BJT
+model. Complement of generic_npn with round example values (current gain 150,
+Early voltage 60 V), not fitted to a product."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["bjt", "pnp", "transistor"]
+
+[part.source]
+kind = "textbook"
+title = "Gummel-Poon bipolar transistor model as used by SPICE; round example values"
+
+[[pins]]
+name = "c"
+role = "analog"
+description = "Collector"
+
+[[pins]]
+name = "b"
+role = "analog"
+description = "Base"
+
+[[pins]]
+name = "e"
+role = "analog"
+description = "Emitter"
+
+[[parameters]]
+name = "i_s"
+type = "real"
+unit = "A"
+default = "10e-15 A"
+min = "1e-30 A"
+
+[[parameters]]
+name = "beta_f"
+type = "real"
+unit = "1"
+default = 150
+min = 1
+tolerance = { relative = 0.5, distribution = "uniform" }
+
+[[parameters]]
+name = "v_early"
+type = "real"
+unit = "V"
+default = "60 V"
+min = "1 V"
+
+[[parameters]]
+name = "c_je"
+type = "real"
+unit = "F"
+default = "10 pF"
+min = 0
+
+[[parameters]]
+name = "c_jc"
+type = "real"
+unit = "F"
+default = "6 pF"
+min = 0
+
+[[parameters]]
+name = "t_forward"
+type = "real"
+unit = "s"
+default = "0.6 ns"
+min = 0
+
+[model]
+kind = "primitive"
+element = "Q"
+polarity = "pnp"
+nodes = ["c", "b", "e"]
+params = { is = "{i_s}", bf = "{beta_f}", br = 4, vaf = "{v_early}", cje = "{c_je}", cjc = "{c_jc}", tf = "{t_forward}", tr = "50 ns", rb = "10 Ohm" }
+
+[[tests]]
+name = "collector_current"
+description = "Ib = -10 uA, Vce = -5 V: Ic is about -(beta_f * 10 uA * (1 + 5 V / v_early))"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "ib"
+nodes = ["b", "0"]
+source = "current"
+waveform = "dc"
+value = "10 uA"
+
+[[tests.stimulus]]
+name = "vce"
+nodes = ["c", "0"]
+source = "voltage"
+waveform = "dc"
+value = "-5 V"
+
+[[tests.stimulus]]
+name = "ve"
+nodes = ["e", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(c)"
+value = "-1.61 mA"
+rel_tol = 0.05

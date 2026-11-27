@@ -1,0 +1,4 @@
+code: E0125
+message: library `base` has no part `generic_test_capacitor` to override
+file: tests/invalid/E0125_invalid_override/library.toml
+line: 16

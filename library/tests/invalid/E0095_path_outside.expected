@@ -1,0 +1,4 @@
+code: E0095
+message: data file path `../valid/data/iv.csv` is not allowed
+file: tests/invalid/E0095_path_outside.toml
+line: 34

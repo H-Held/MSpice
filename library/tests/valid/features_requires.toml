@@ -1,0 +1,110 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_features"
+name = "Features"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Features."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "esr"
+type = "real"
+unit = "Ohm"
+default = "10 mOhm"
+feature = "esr"
+
+[[parameters]]
+name = "esl"
+type = "real"
+unit = "H"
+default = "1 nH"
+feature = "parasitics"
+
+[[features]]
+name = "esr"
+description = "Series resistance"
+default = false
+
+[[features]]
+name = "parasitics"
+description = "Series inductance; needs esr"
+requires = ["esr"]
+
+[[features]]
+name = "leakage"
+description = "Parallel leakage resistance"
+default = true
+
+[model]
+kind = "subcircuit"
+internal_nodes = ["n1", "n2"]
+
+[[model.elements]]
+name = "C1"
+type = "C"
+nodes = ["p", "n1"]
+params = { c = "1 uF" }
+
+[[model.elements]]
+name = "Resr"
+type = "R"
+nodes = ["n1", "n2"]
+params = { r = "{esr}" }
+feature = "esr"
+when_disabled = "short"
+
+[[model.elements]]
+name = "Lesl"
+type = "L"
+nodes = ["n2", "n"]
+params = { l = "{esl}" }
+feature = "parasitics"
+when_disabled = "short"
+
+[[model.elements]]
+name = "Rleak"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "100 MOhm" }
+feature = "leakage"
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+features = { parasitics = true, leakage = false }
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

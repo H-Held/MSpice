@@ -1,0 +1,95 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_led"
+name = "Light-emitting diode"
+version = "0.1.0"
+category = "led/single"
+description = """
+LED as a junction diode with a high emission coefficient. The defaults give
+about 2.0 V at 20 mA, typical for red and yellow LEDs. For other colours
+change `i_s` so that the forward voltage at the rated current fits the
+datasheet (roughly 2.9 V to 3.3 V for blue, green and white LEDs). Light
+output is not modelled; it is roughly proportional to the forward current."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["led", "diode"]
+
+[part.source]
+kind = "estimate"
+title = "Diode equation fitted by hand to a forward voltage of about 2 V at 20 mA"
+
+[[pins]]
+name = "a"
+role = "analog"
+description = "Anode"
+reference = "k"
+abs_max_current = "30 mA"
+
+[[pins]]
+name = "k"
+role = "analog"
+description = "Cathode"
+
+[[parameters]]
+name = "i_s"
+type = "real"
+unit = "A"
+default = "3.2e-19 A"
+min = "1e-40 A"
+description = "Saturation current; sets the forward voltage"
+
+[[parameters]]
+name = "n_ideality"
+type = "real"
+unit = "1"
+default = 2.0
+min = 1
+max = 10
+
+[[parameters]]
+name = "r_series"
+type = "real"
+unit = "Ohm"
+default = "2 Ohm"
+min = 0
+
+[[parameters]]
+name = "v_reverse_max"
+type = "real"
+unit = "V"
+default = "5 V"
+min = "0.1 V"
+description = "Reverse breakdown voltage"
+
+[model]
+kind = "primitive"
+element = "D"
+nodes = ["a", "k"]
+params = { is = "{i_s}", n = "{n_ideality}", rs = "{r_series}", bv = "{v_reverse_max}", ibv = "10 uA", cjo = "20 pF" }
+
+[[tests]]
+name = "forward_20ma"
+description = "2 * 25.9 mV * ln(20 mA / 3.2e-19 A) + 20 mA * 2 Ohm"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "i1"
+nodes = ["0", "a"]
+source = "current"
+waveform = "dc"
+value = "20 mA"
+
+[[tests.stimulus]]
+name = "vk"
+nodes = ["k", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(a, k)"
+value = "2.04 V"
+abs_tol = "50 mV"

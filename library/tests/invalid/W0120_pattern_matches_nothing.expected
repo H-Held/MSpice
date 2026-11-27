@@ -1,0 +1,4 @@
+code: W0120
+message: pattern `extra/*.toml` matches no part file
+file: tests/invalid/W0120_pattern_matches_nothing/library.toml
+line: 9

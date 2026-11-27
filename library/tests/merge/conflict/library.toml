@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[library]
+name = "merge-test-conflict"
+version = "0.1.0"
+description = "Merge test fixture"
+license = "CC-BY-4.0"
+parts = ["parts/*.toml"]

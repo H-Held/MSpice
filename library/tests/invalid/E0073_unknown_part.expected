@@ -1,0 +1,4 @@
+code: E0073
+message: unknown part `generic_resistr` used by element `X2`
+file: tests/invalid/E0073_unknown_part.toml
+line: 44

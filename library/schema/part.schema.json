@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mspice/mspice/library/schema/part.schema.json",
+  "title": "MSpice part file, format 0.1",
+  "description": "Data model of a part file (TOML converted to JSON). The reference is library/SPEC.md and the validator mspice-libcheck; rules about units, references, expressions and CSV files are not expressible here.",
+  "type": "object",
+  "required": ["format_version", "part", "pins", "model"],
+  "additionalProperties": false,
+  "properties": {
+    "format_version": { "const": "0.1" },
+    "part": { "$ref": "#/$defs/part" },
+    "pins": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/pin" } },
+    "parameters": { "type": "array", "items": { "$ref": "#/$defs/parameter" } },
+    "features": { "type": "array", "items": { "$ref": "#/$defs/feature" } },
+    "curves": { "type": "array", "items": { "$ref": "#/$defs/curve" } },
+    "model": { "$ref": "#/$defs/model" },
+    "tests": { "type": "array", "items": { "$ref": "#/$defs/test" } }
+  },
+  "$defs": {
+    "lower_name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "pin_name": { "type": "string", "pattern": "^[A-Za-z0-9_]+$" },
+    "element_name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" },
+    "semver": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$" },
+    "unit": {
+      "enum": ["1", "%", "V", "A", "Ohm", "S", "F", "H", "W", "J", "C", "s", "Hz", "K", "degC", "m", "kg", "N",
+               "N*m", "rad", "rad/s", "rpm", "kg*m^2", "V*s/rad", "N*m/A", "N*m*s/rad", "Ohm/m", "A/m", "1/m",
+               "V/s", "V/sqrt(Hz)", "A/sqrt(Hz)", "K/W", "J/K", "V/K", "1/K", "1/K^2", "A/V^2", "1/V", "sqrt(V)",
+               "bit/s", "dB"]
+    },
+    "value": {
+      "description": "Number in the unit of the field, quantity string such as \"4.7 kOhm\", or expression \"{...}\" (SPEC 5.1).",
+      "type": ["number", "string"]
+    },
+    "fixed_value": {
+      "description": "Number or quantity string; expressions are not allowed.",
+      "anyOf": [ { "type": "number" }, { "type": "string", "pattern": "^\\s*[+-]?[0-9.]" } ]
+    },
+    "expression": { "type": "string", "minLength": 1 },
+    "node_list": { "type": "array", "items": { "$ref": "#/$defs/pin_name" } },
+    "part": {
+      "type": "object",
+      "required": ["id", "name", "version", "category", "description", "author", "license", "quality", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^generic_[a-z0-9_]+$" },
+        "name": { "type": "string" },
+        "version": { "$ref": "#/$defs/semver" },
+        "category": { "type": "string", "pattern": "^[a-z0-9_]+(/[a-z0-9_]+)*$" },
+        "description": { "type": "string" },
+        "compatible": { "type": "array", "items": { "type": "string" } },
+        "author": { "type": "string" },
+        "license": { "enum": ["CC-BY-4.0", "CC0-1.0"] },
+        "quality": { "enum": ["draft", "datasheet", "measured", "vendor-verified"] },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["kind", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["datasheet", "application_note", "standard", "measurement", "spice_model", "textbook", "estimate"] },
+        "title": { "type": "string", "minLength": 1 },
+        "vendor": { "type": "string" },
+        "document_id": { "type": "string" },
+        "revision": { "type": "string" },
+        "section": { "type": "string" },
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "url": { "type": "string" },
+        "model_license": { "enum": ["CC0-1.0", "CC-BY-4.0", "MIT", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "Zlib"] },
+        "notes": { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "enum": ["datasheet", "application_note", "spice_model"] } } }, "then": { "required": ["vendor"] } },
+        { "if": { "properties": { "kind": { "const": "measurement" } } }, "then": { "required": ["date"] } },
+        { "if": { "properties": { "kind": { "const": "spice_model" } } }, "then": { "required": ["model_license"] }, "else": { "not": { "required": ["model_license"] } } }
+      ]
+    },
+    "pin": {
+      "type": "object",
+      "required": ["name", "role"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/pin_name" },
+        "role": { "enum": ["power", "ground", "input", "output", "bidirectional", "analog"] },
+        "description": { "type": "string" },
+        "reference": { "$ref": "#/$defs/pin_name" },
+        "abs_max_voltage": { "$ref": "#/$defs/fixed_value" },
+        "abs_min_voltage": { "$ref": "#/$defs/fixed_value" },
+        "abs_max_current": { "$ref": "#/$defs/fixed_value" },
+        "driver": { "enum": ["push_pull", "open_drain", "tristate"] }
+      }
+    },
+    "tolerance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "relative": { "type": "number", "minimum": 0, "exclusiveMaximum": 1 },
+        "absolute": { "$ref": "#/$defs/fixed_value" },
+        "distribution": { "enum": ["uniform", "normal"] },
+        "sigma": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "oneOf": [ { "required": ["relative"] }, { "required": ["absolute"] } ]
+    },
+    "parameter": {
+      "type": "object",
+      "required": ["name", "type", "default"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/lower_name" },
+        "type": { "enum": ["real", "integer", "boolean", "string", "enum"] },
+        "unit": { "$ref": "#/$defs/unit" },
+        "default": {},
+        "min": { "$ref": "#/$defs/fixed_value" },
+        "max": { "$ref": "#/$defs/fixed_value" },
+        "adjustable": { "type": "boolean" },
+        "choices": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "tolerance": { "$ref": "#/$defs/tolerance" },
+        "feature": { "$ref": "#/$defs/lower_name" },
+        "description": { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "enum": ["real", "integer"] } } }, "then": { "required": ["unit"] } },
+        { "if": { "properties": { "type": { "const": "integer" } } }, "then": { "properties": { "default": { "type": "integer" } } } },
+        { "if": { "properties": { "type": { "const": "real" } } }, "then": { "properties": { "default": { "$ref": "#/$defs/fixed_value" } } } },
+        { "if": { "properties": { "type": { "const": "boolean" } } }, "then": { "properties": { "default": { "type": "boolean" } } } },
+        { "if": { "properties": { "type": { "enum": ["string", "enum"] } } }, "then": { "properties": { "default": { "type": "string" } } } },
+        { "if": { "properties": { "type": { "const": "enum" } } }, "then": { "required": ["choices"] }, "else": { "not": { "required": ["choices"] } } }
+      ]
+    },
+    "feature": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/lower_name" },
+        "description": { "type": "string" },
+        "default": { "type": "boolean" },
+        "requires": { "type": "array", "items": { "$ref": "#/$defs/lower_name" } }
+      }
+    },
+    "curve": {
+      "type": "object",
+      "required": ["name", "file", "x", "y", "x_unit", "y_unit"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/lower_name" },
+        "file": { "type": "string", "pattern": "^(?!/)(?!.*\\\\)(?!.*(^|/)\\.\\.(/|$)).+$" },
+        "x": { "$ref": "#/$defs/lower_name" },
+        "y": { "$ref": "#/$defs/lower_name" },
+        "x_unit": { "$ref": "#/$defs/unit" },
+        "y_unit": { "$ref": "#/$defs/unit" },
+        "interpolation": { "enum": ["linear", "step", "cubic"] },
+        "extrapolation": { "enum": ["clamp", "linear", "zero", "error"] },
+        "description": { "type": "string" }
+      }
+    },
+    "element": {
+      "type": "object",
+      "required": ["name", "nodes"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/element_name" },
+        "type": { "enum": ["R", "C", "L", "D", "Q", "M", "SW", "V", "I", "E", "G", "B"] },
+        "part": { "type": "string", "pattern": "^generic_[a-z0-9_]+$" },
+        "nodes": {
+          "oneOf": [
+            { "$ref": "#/$defs/node_list" },
+            { "type": "object", "additionalProperties": { "$ref": "#/$defs/pin_name" } }
+          ]
+        },
+        "params": { "type": "object", "additionalProperties": { "$ref": "#/$defs/value" } },
+        "features": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "polarity": { "enum": ["npn", "pnp", "nmos", "pmos"] },
+        "source": { "enum": ["voltage", "current"] },
+        "expr": { "$ref": "#/$defs/expression" },
+        "feature": { "$ref": "#/$defs/lower_name" },
+        "when_disabled": { "enum": ["open", "short"] },
+        "description": { "type": "string" }
+      },
+      "oneOf": [ { "required": ["type"] }, { "required": ["part"] } ],
+      "allOf": [
+        { "if": { "required": ["type"], "properties": { "type": { "const": "B" } } }, "then": { "required": ["source", "expr"] } },
+        { "if": { "required": ["type"], "properties": { "type": { "enum": ["Q", "M"] } } }, "then": { "required": ["polarity"] } }
+      ]
+    },
+    "signal": {
+      "type": "object",
+      "required": ["name", "expr"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/lower_name" },
+        "expr": { "$ref": "#/$defs/expression" },
+        "tau": { "$ref": "#/$defs/value" },
+        "unit": { "$ref": "#/$defs/unit" },
+        "description": { "type": "string" }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["name", "source", "nodes", "expr"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/lower_name" },
+        "source": { "enum": ["voltage", "current", "switch"] },
+        "nodes": { "$ref": "#/$defs/node_list", "minItems": 2, "maxItems": 2 },
+        "expr": { "$ref": "#/$defs/expression" },
+        "r_out": { "$ref": "#/$defs/value" },
+        "ron": { "$ref": "#/$defs/value" },
+        "roff": { "$ref": "#/$defs/value" },
+        "feature": { "$ref": "#/$defs/lower_name" },
+        "description": { "type": "string" }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "required": ["name", "nodes", "mode"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/lower_name" },
+        "nodes": { "$ref": "#/$defs/node_list", "minItems": 2, "maxItems": 2 },
+        "quantity": { "enum": ["current", "resistance", "power"] },
+        "mode": { "enum": ["fixed", "curve", "formula", "state_machine"] },
+        "value": { "$ref": "#/$defs/value" },
+        "curve": { "$ref": "#/$defs/lower_name" },
+        "input": { "$ref": "#/$defs/expression" },
+        "expr": { "$ref": "#/$defs/expression" },
+        "v_min": { "$ref": "#/$defs/fixed_value" },
+        "feature": { "$ref": "#/$defs/lower_name" },
+        "description": { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "mode": { "const": "fixed" } } }, "then": { "required": ["value"] } },
+        { "if": { "properties": { "mode": { "const": "curve" } } }, "then": { "required": ["curve", "input"] } },
+        { "if": { "properties": { "mode": { "const": "formula" } } }, "then": { "required": ["expr"] } }
+      ]
+    },
+    "state_machine": {
+      "type": "object",
+      "required": ["initial", "states"],
+      "additionalProperties": false,
+      "properties": {
+        "initial": { "$ref": "#/$defs/lower_name" },
+        "description": { "type": "string" },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["name", "init"], "additionalProperties": false,
+            "properties": { "name": { "$ref": "#/$defs/lower_name" }, "init": { "type": "number" }, "description": { "type": "string" } }
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["name", "expr", "high", "low"], "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/lower_name" }, "expr": { "$ref": "#/$defs/expression" },
+              "high": { "$ref": "#/$defs/value" }, "low": { "$ref": "#/$defs/value" }, "description": { "type": "string" }
+            }
+          }
+        },
+        "states": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "required": ["name"], "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/lower_name" },
+              "values": { "type": "object", "additionalProperties": { "$ref": "#/$defs/value" } },
+              "on_enter": { "type": "array", "items": { "type": "string" } },
+              "on_exit": { "type": "array", "items": { "type": "string" } },
+              "final": { "type": "boolean" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["from", "to"], "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string", "pattern": "^([a-z][a-z0-9_]*|\\*)$" },
+              "to": { "$ref": "#/$defs/lower_name" },
+              "on": { "type": "string", "pattern": "^\\s*(rising|falling)\\s*\\(\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\)\\s*$" },
+              "after": { "$ref": "#/$defs/value" },
+              "when": { "$ref": "#/$defs/expression" },
+              "guard": { "$ref": "#/$defs/expression" },
+              "actions": { "type": "array", "items": { "type": "string" } },
+              "priority": { "type": "integer" },
+              "description": { "type": "string" }
+            },
+            "anyOf": [ { "required": ["on"] }, { "required": ["after"] }, { "required": ["when"] } ]
+          }
+        }
+      }
+    },
+    "noise": {
+      "type": "object",
+      "required": ["type", "output", "nodes"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["white", "pink", "burst", "ripple", "esd"] },
+        "output": { "enum": ["voltage", "current"] },
+        "nodes": { "$ref": "#/$defs/node_list", "minItems": 2, "maxItems": 2 },
+        "seed": { "type": "integer" },
+        "density": { "$ref": "#/$defs/value" }, "bandwidth": { "$ref": "#/$defs/value" },
+        "f_min": { "$ref": "#/$defs/value" }, "f_max": { "$ref": "#/$defs/value" },
+        "amplitude": { "$ref": "#/$defs/value" }, "rate": { "$ref": "#/$defs/value" },
+        "duration": { "$ref": "#/$defs/value" }, "rise_time": { "$ref": "#/$defs/value" },
+        "decay_time": { "$ref": "#/$defs/value" }, "frequency": { "$ref": "#/$defs/value" },
+        "shape": { "enum": ["sine", "triangle", "sawtooth", "full_wave", "half_wave"] },
+        "offset": { "$ref": "#/$defs/value" }, "phase": { "$ref": "#/$defs/value" },
+        "peak": { "$ref": "#/$defs/value" }, "delay": { "$ref": "#/$defs/value" },
+        "interval": { "$ref": "#/$defs/value" }, "count": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "white" } } }, "then": { "required": ["density", "bandwidth"] } },
+        { "if": { "properties": { "type": { "const": "pink" } } }, "then": { "required": ["density", "f_min", "f_max"] } },
+        { "if": { "properties": { "type": { "const": "burst" } } }, "then": { "required": ["amplitude", "rate", "duration"] } },
+        { "if": { "properties": { "type": { "const": "ripple" } } }, "then": { "required": ["amplitude", "frequency"] } },
+        { "if": { "properties": { "type": { "const": "esd" } } }, "then": { "required": ["peak", "rise_time", "decay_time"] } }
+      ]
+    },
+    "model": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["primitive", "subcircuit", "behavioral", "load", "noise_source"] },
+        "description": { "type": "string" },
+        "element": { "enum": ["R", "C", "L", "D", "Q", "M", "SW", "V", "I", "E", "G"] },
+        "nodes": { "$ref": "#/$defs/node_list" },
+        "params": { "type": "object", "additionalProperties": { "$ref": "#/$defs/value" } },
+        "polarity": { "enum": ["npn", "pnp", "nmos", "pmos"] },
+        "internal_nodes": { "$ref": "#/$defs/node_list" },
+        "elements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+        "signals": { "type": "array", "items": { "$ref": "#/$defs/signal" } },
+        "outputs": { "type": "array", "items": { "$ref": "#/$defs/output" } },
+        "branches": { "type": "array", "items": { "$ref": "#/$defs/branch" } },
+        "state_machine": { "$ref": "#/$defs/state_machine" },
+        "noise": { "$ref": "#/$defs/noise" }
+      },
+      "oneOf": [
+        { "properties": { "kind": { "const": "primitive" } }, "required": ["element", "nodes"],
+          "propertyNames": { "enum": ["kind", "description", "element", "nodes", "params", "polarity"] } },
+        { "properties": { "kind": { "const": "subcircuit" } }, "required": ["elements"],
+          "propertyNames": { "enum": ["kind", "description", "elements", "internal_nodes", "signals"] } },
+        { "properties": { "kind": { "const": "behavioral" } }, "required": ["outputs"],
+          "propertyNames": { "enum": ["kind", "description", "outputs", "internal_nodes", "elements", "signals"] } },
+        { "properties": { "kind": { "const": "load" } }, "required": ["branches"],
+          "propertyNames": { "enum": ["kind", "description", "branches", "internal_nodes", "elements", "signals", "outputs", "state_machine"] } },
+        { "properties": { "kind": { "const": "noise_source" } }, "required": ["noise"],
+          "propertyNames": { "enum": ["kind", "description", "noise"] } }
+      ]
+    },
+    "stimulus": {
+      "type": "object",
+      "required": ["name", "nodes", "source", "waveform"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/element_name" },
+        "nodes": { "$ref": "#/$defs/node_list", "minItems": 2, "maxItems": 2 },
+        "source": { "enum": ["voltage", "current"] },
+        "waveform": { "enum": ["dc", "pulse", "sin", "pwl"] },
+        "value": { "$ref": "#/$defs/fixed_value" },
+        "v1": { "$ref": "#/$defs/fixed_value" }, "v2": { "$ref": "#/$defs/fixed_value" },
+        "delay": { "$ref": "#/$defs/fixed_value" }, "rise": { "$ref": "#/$defs/fixed_value" },
+        "fall": { "$ref": "#/$defs/fixed_value" }, "width": { "$ref": "#/$defs/fixed_value" },
+        "period": { "$ref": "#/$defs/fixed_value" }, "offset": { "$ref": "#/$defs/fixed_value" },
+        "amplitude": { "$ref": "#/$defs/fixed_value" }, "frequency": { "$ref": "#/$defs/fixed_value" },
+        "points": { "type": "array", "items": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 } }
+      },
+      "allOf": [
+        { "if": { "properties": { "waveform": { "const": "dc" } } }, "then": { "required": ["value"] } },
+        { "if": { "properties": { "waveform": { "const": "pulse" } } }, "then": { "required": ["v1", "v2", "delay", "rise", "fall", "width", "period"] } },
+        { "if": { "properties": { "waveform": { "const": "sin" } } }, "then": { "required": ["offset", "amplitude", "frequency"] } },
+        { "if": { "properties": { "waveform": { "const": "pwl" } } }, "then": { "required": ["points"] } }
+      ]
+    },
+    "expect": {
+      "type": "object",
+      "required": ["probe"],
+      "additionalProperties": false,
+      "properties": {
+        "probe": { "$ref": "#/$defs/expression" },
+        "value": { "$ref": "#/$defs/fixed_value" },
+        "at": { "$ref": "#/$defs/fixed_value" },
+        "min": { "$ref": "#/$defs/fixed_value" },
+        "max": { "$ref": "#/$defs/fixed_value" },
+        "file": { "type": "string" },
+        "column": { "$ref": "#/$defs/lower_name" },
+        "abs_tol": { "$ref": "#/$defs/fixed_value" },
+        "rel_tol": { "type": "number", "minimum": 0 },
+        "description": { "type": "string" }
+      },
+      "oneOf": [
+        { "required": ["value"], "not": { "anyOf": [ { "required": ["min"] }, { "required": ["max"] }, { "required": ["file"] } ] },
+          "anyOf": [ { "required": ["abs_tol"] }, { "required": ["rel_tol"] } ] },
+        { "anyOf": [ { "required": ["min"] }, { "required": ["max"] } ], "not": { "anyOf": [ { "required": ["value"] }, { "required": ["file"] } ] } },
+        { "required": ["file", "column"], "not": { "anyOf": [ { "required": ["value"] }, { "required": ["min"] }, { "required": ["max"] } ] },
+          "anyOf": [ { "required": ["abs_tol"] }, { "required": ["rel_tol"] } ] }
+      ]
+    },
+    "test": {
+      "type": "object",
+      "required": ["name", "analysis", "expect"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/lower_name" },
+        "description": { "type": "string" },
+        "analysis": { "enum": ["op", "dc", "tran"] },
+        "stop": { "$ref": "#/$defs/fixed_value" },
+        "step": { "$ref": "#/$defs/fixed_value" },
+        "sweep": {
+          "type": "object", "required": ["stimulus", "from", "to", "step"], "additionalProperties": false,
+          "properties": {
+            "stimulus": { "$ref": "#/$defs/element_name" }, "from": { "$ref": "#/$defs/fixed_value" },
+            "to": { "$ref": "#/$defs/fixed_value" }, "step": { "$ref": "#/$defs/fixed_value" }
+          }
+        },
+        "params": { "type": "object" },
+        "features": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "stimulus": { "type": "array", "items": { "$ref": "#/$defs/stimulus" } },
+        "elements": { "type": "array", "items": { "$ref": "#/$defs/element" } },
+        "expect": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/expect" } }
+      },
+      "allOf": [
+        { "if": { "properties": { "analysis": { "const": "tran" } } }, "then": { "required": ["stop"] }, "else": { "not": { "anyOf": [ { "required": ["stop"] }, { "required": ["step"] } ] } } },
+        { "if": { "properties": { "analysis": { "const": "dc" } } }, "then": { "required": ["sweep"] }, "else": { "not": { "required": ["sweep"] } } }
+      ]
+    }
+  }
+}

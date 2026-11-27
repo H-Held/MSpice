@@ -1,0 +1,4 @@
+code: E0094
+message: unknown curve `i_v` in branch `main`
+file: tests/invalid/E0094_unknown_curve.toml
+line: 47

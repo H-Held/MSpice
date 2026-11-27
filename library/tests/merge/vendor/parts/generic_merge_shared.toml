@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_merge_shared"
+name = "Minimal part"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Minimal part."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "resistance"
+type = "real"
+unit = "Ohm"
+default = "1.1 kOhm"
+
+[model]
+kind = "primitive"
+element = "R"
+nodes = ["p", "n"]
+params = { r = "{resistance}" }
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

@@ -1,0 +1,4 @@
+code: E0003
+message: unsupported format_version `0.2`
+file: tests/invalid/E0003_format_version.toml
+line: 2

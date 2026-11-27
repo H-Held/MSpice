@@ -1,0 +1,4 @@
+code: E0082
+message: unknown function `sqr` in `r` in [model] (`R`, resistor)
+file: tests/invalid/E0082_unknown_function.toml
+line: 36

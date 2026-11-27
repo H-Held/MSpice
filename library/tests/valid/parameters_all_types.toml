@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_parameters"
+name = "Parameter types"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Parameter types."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "resistance"
+type = "real"
+unit = "Ohm"
+default = "4.7 kOhm"
+min = "1 Ohm"
+max = "1 MOhm"
+tolerance = { relative = 0.05 }
+
+[[parameters]]
+name = "offset"
+type = "real"
+unit = "V"
+default = "0 V"
+tolerance = { absolute = "2 mV", distribution = "normal", sigma = 3 }
+description = "Unused by the model; shows an absolute tolerance"
+
+[[parameters]]
+name = "stages"
+type = "integer"
+unit = "1"
+default = 1
+min = 1
+max = 8
+tolerance = { absolute = 0, distribution = "uniform" }
+
+[[parameters]]
+name = "enabled"
+type = "boolean"
+default = true
+
+[[parameters]]
+name = "label"
+type = "string"
+default = "R1"
+
+[[parameters]]
+name = "dielectric"
+type = "enum"
+choices = ["c0g", "x7r", "y5v"]
+default = "x7r"
+
+[[parameters]]
+name = "r_internal"
+type = "real"
+unit = "Ohm"
+default = "10 Ohm"
+adjustable = false
+description = "Fixed by the part; instances may not change it"
+
+[model]
+kind = "primitive"
+element = "R"
+nodes = ["p", "n"]
+params = { r = "{resistance * (enabled ? 1 : 2) * stages}" }
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+params = { resistance = "10 kOhm", stages = 2, enabled = false, label = "R7", dielectric = "c0g" }
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

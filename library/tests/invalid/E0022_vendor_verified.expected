@@ -1,0 +1,4 @@
+code: E0022
+message: quality `vendor-verified` cannot be used in format 0.1
+file: tests/invalid/E0022_vendor_verified.toml
+line: 12

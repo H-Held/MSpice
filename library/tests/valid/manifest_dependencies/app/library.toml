@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[library]
+name = "valid-app"
+version = "1.0.0"
+description = "Application library that depends on valid-base"
+license = "CC-BY-4.0"
+parts = ["parts/*.toml"]
+
+[[dependencies]]
+name = "valid-base"
+path = "../base"
+version = ">=0.3.0, <0.4.0"
+
+[[overrides]]
+id = "generic_valid_shared"
+library = "valid-base"
+reason = "Measured value replaces the generic one"

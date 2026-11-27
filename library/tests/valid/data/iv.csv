@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# comment lines and empty lines are allowed
+
+voltage,current
+V,A
+0,0
+1,0.001
+2,0.0025

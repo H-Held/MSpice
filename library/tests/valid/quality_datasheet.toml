@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_quality_datasheet"
+name = "Quality datasheet"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Quality datasheet."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "datasheet"
+
+[part.source]
+kind = "datasheet"
+title = "Example resistor datasheet (fictitious, used only by validator tests)"
+vendor = "Example Components"
+document_id = "EX-0001"
+revision = "Rev. B, 2026-01"
+section = "Table 1, electrical characteristics"
+url = "https://example.com/ex-0001.pdf"
+notes = "Test fixture; not a real document."
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "resistance"
+type = "real"
+unit = "Ohm"
+default = "1 kOhm"
+
+[model]
+kind = "primitive"
+element = "R"
+nodes = ["p", "n"]
+params = { r = "{resistance}" }
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

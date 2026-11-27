@@ -1,0 +1,4 @@
+code: E0034
+message: `min` (10000) of parameter `resistance` is greater than `max` (100)
+file: tests/invalid/E0034_min_above_max.toml
+line: 31

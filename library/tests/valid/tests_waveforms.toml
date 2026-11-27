@@ -1,0 +1,149 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_testbench"
+name = "Test bench"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Test bench."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "resistance"
+type = "real"
+unit = "Ohm"
+default = "1 kOhm"
+
+[model]
+kind = "primitive"
+element = "R"
+nodes = ["p", "n"]
+params = { r = "{resistance}" }
+
+[[tests]]
+name = "operating_point"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.expect]]
+probe = "I(p)"
+value = "1 mA"
+abs_tol = "1 uA"
+rel_tol = 0.001
+
+[[tests]]
+name = "sweep"
+analysis = "dc"
+sweep = { stimulus = "v1", from = 0, to = "5 V", step = "0.5 V" }
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.elements]]
+name = "Rs"
+type = "R"
+nodes = ["n", "0"]
+params = { r = "1 kOhm" }
+
+[[tests.expect]]
+probe = "V(p, n)"
+at = "4 V"
+value = "2 V"
+rel_tol = 0.001
+
+[[tests]]
+name = "transient"
+description = "pulse, sin and pwl stimuli, value / range / reference-file expectations"
+analysis = "tran"
+stop = "2 ms"
+step = "1 us"
+
+[[tests.stimulus]]
+name = "vpulse"
+nodes = ["p", "mid"]
+source = "voltage"
+waveform = "pulse"
+v1 = 0
+v2 = "1 V"
+delay = "10 us"
+rise = "1 us"
+fall = "1 us"
+width = "100 us"
+period = "200 us"
+
+[[tests.stimulus]]
+name = "vsin"
+nodes = ["mid", "low"]
+source = "voltage"
+waveform = "sin"
+offset = 0
+amplitude = "0.1 V"
+frequency = "1 kHz"
+delay = 0
+
+[[tests.stimulus]]
+name = "ipwl"
+nodes = ["low", "0"]
+source = "current"
+waveform = "pwl"
+points = [[0, 0], [1e-3, 1e-6], [2e-3, 0]]
+
+[[tests.elements]]
+name = "Rmid"
+type = "R"
+nodes = ["mid", "0"]
+params = { r = "1 MOhm" }
+
+[[tests.elements]]
+name = "Rlow"
+type = "R"
+nodes = ["low", "0"]
+params = { r = "1 kOhm" }
+
+[[tests.elements]]
+name = "Rn"
+type = "R"
+nodes = ["n", "0"]
+params = { r = "1 Ohm" }
+
+[[tests.expect]]
+probe = "V(p, n)"
+min = "-2 V"
+max = "2 V"
+
+[[tests.expect]]
+probe = "I(p)"
+at = "50 us"
+value = "1 mA"
+abs_tol = "0.2 mA"
+
+[[tests.expect]]
+probe = "V(p, n)"
+file = "data/reference.csv"
+column = "voltage"
+abs_tol = "0.2 V"

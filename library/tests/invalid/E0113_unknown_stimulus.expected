@@ -1,0 +1,4 @@
+code: E0113
+message: unknown stimulus `v2` in `sweep` of test `ohms_law`
+file: tests/invalid/E0113_unknown_stimulus.toml
+line: 41

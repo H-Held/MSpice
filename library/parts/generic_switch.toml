@@ -1,0 +1,148 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_switch"
+name = "Voltage-controlled switch"
+version = "0.1.0"
+category = "switch/voltage_controlled"
+description = """
+Ideal voltage-controlled switch with hysteresis, as the SPICE switch element:
+closed (r_on) when V(cp, cn) is above v_threshold + v_hysteresis, open
+(r_off) when below v_threshold - v_hysteresis. Useful for relays, analog
+switches and fault injection. Contact bounce is not modelled."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["switch", "relay"]
+
+[part.source]
+kind = "textbook"
+title = "SPICE voltage-controlled switch element"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[pins]]
+name = "cp"
+role = "input"
+description = "Positive control input"
+
+[[pins]]
+name = "cn"
+role = "input"
+description = "Negative control input"
+
+[[parameters]]
+name = "r_on"
+type = "real"
+unit = "Ohm"
+default = "0.1 Ohm"
+min = "1 uOhm"
+
+[[parameters]]
+name = "r_off"
+type = "real"
+unit = "Ohm"
+default = "1 GOhm"
+min = "1 Ohm"
+
+[[parameters]]
+name = "v_threshold"
+type = "real"
+unit = "V"
+default = "2.5 V"
+
+[[parameters]]
+name = "v_hysteresis"
+type = "real"
+unit = "V"
+default = "0.1 V"
+min = 0
+
+[model]
+kind = "primitive"
+element = "SW"
+nodes = ["p", "n", "cp", "cn"]
+params = { ron = "{r_on}", roff = "{r_off}", vt = "{v_threshold}", vh = "{v_hysteresis}" }
+
+[[tests]]
+name = "closed"
+description = "Control 5 V: 1 A through r_on gives 0.1 V"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vc"
+nodes = ["cp", "cn"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vcn"
+nodes = ["cn", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "i1"
+nodes = ["0", "p"]
+source = "current"
+waveform = "dc"
+value = "1 A"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(p, n)"
+value = "0.1 V"
+rel_tol = 0.001
+
+[[tests]]
+name = "open"
+description = "Control 0 V: 1 V across r_off gives 1 nA"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vc"
+nodes = ["cp", "cn"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "vcn"
+nodes = ["cn", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+value = "1 nA"
+rel_tol = 0.001

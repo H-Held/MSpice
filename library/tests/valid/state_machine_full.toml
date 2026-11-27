@@ -1,0 +1,147 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_state_machine"
+name = "State machine"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: State machine."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "vdd"
+role = "power"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[pins]]
+name = "din"
+role = "input"
+
+[[pins]]
+name = "rdy"
+role = "output"
+driver = "open_drain"
+
+[[parameters]]
+name = "i_idle"
+type = "real"
+unit = "A"
+default = "10 uA"
+
+[[parameters]]
+name = "i_active"
+type = "real"
+unit = "A"
+default = "2 mA"
+
+[[parameters]]
+name = "t_timeout"
+type = "real"
+unit = "s"
+default = "1 ms"
+
+[model]
+kind = "load"
+
+[[model.branches]]
+name = "supply"
+nodes = ["vdd", "gnd"]
+mode = "state_machine"
+value = "{i_idle}"
+
+[[model.branches]]
+name = "status"
+nodes = ["vdd", "gnd"]
+mode = "formula"
+expr = "in_state(active) ? 1u : 0"
+
+[[model.outputs]]
+name = "ready"
+source = "switch"
+nodes = ["rdy", "gnd"]
+expr = "count >= 3"
+
+[model.state_machine]
+initial = "off"
+description = "Counts edges, times out, has a final error state"
+
+[[model.state_machine.variables]]
+name = "count"
+init = 0
+
+[[model.state_machine.inputs]]
+name = "clk"
+expr = "V(din, gnd)"
+high = "{0.7 * V(vdd, gnd)}"
+low = "{0.3 * V(vdd, gnd)}"
+
+[[model.state_machine.states]]
+name = "off"
+on_enter = ["count = 0"]
+
+[[model.state_machine.states]]
+name = "active"
+values = { supply = "{i_active}" }
+on_exit = ["count = count + 1"]
+
+[[model.state_machine.states]]
+name = "error"
+final = true
+values = { supply = 0 }
+
+[[model.state_machine.transitions]]
+from = "off"
+to = "active"
+on = "rising(clk)"
+guard = "V(vdd, gnd) > 2"
+
+[[model.state_machine.transitions]]
+from = "active"
+to = "off"
+on = "falling(clk)"
+priority = 1
+
+[[model.state_machine.transitions]]
+from = "active"
+to = "off"
+after = "{t_timeout}"
+when = "time_in_state > 0"
+actions = ["count = 0"]
+
+[[model.state_machine.transitions]]
+from = "*"
+to = "error"
+when = "V(vdd, gnd) > 6"
+
+[[tests]]
+name = "idle"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "3.3 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(vdd)"
+value = "10 uA"
+rel_tol = 0.01

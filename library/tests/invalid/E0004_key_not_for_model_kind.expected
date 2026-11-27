@@ -1,0 +1,4 @@
+code: E0004
+message: key `internal_nodes` is not allowed in [model] of kind `primitive`
+file: tests/invalid/E0004_key_not_for_model_kind.toml
+line: 37

@@ -1,0 +1,166 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_ldo_regulator"
+name = "Low-dropout linear regulator"
+version = "0.1.0"
+category = "power/linear_regulator"
+description = """
+Fixed-output low-dropout regulator as a behavioral model. The output follows
+min(v_out, V(vin) - v_dropout) through an output resistance; the input draws
+the load current plus a quiescent current, so efficiency and dissipation come
+out right. The regulation loop is approximated by a first-order response
+(time constant t_response). Not modelled: current limit, thermal shutdown,
+PSRR versus frequency, enable pin, stability with the output capacitor."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["regulator", "ldo", "power", "behavioral"]
+
+[part.source]
+kind = "textbook"
+title = "Behavioral model of a series pass regulator with dropout"
+
+[[pins]]
+name = "vin"
+role = "power"
+reference = "gnd"
+abs_max_voltage = "16 V"
+
+[[pins]]
+name = "vout"
+role = "output"
+driver = "push_pull"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[parameters]]
+name = "v_out"
+type = "real"
+unit = "V"
+default = "3.3 V"
+min = "0.5 V"
+tolerance = { relative = 0.02, distribution = "uniform" }
+description = "Nominal output voltage"
+
+[[parameters]]
+name = "v_dropout"
+type = "real"
+unit = "V"
+default = "0.3 V"
+min = 0
+description = "Minimum input-output difference"
+
+[[parameters]]
+name = "r_out"
+type = "real"
+unit = "Ohm"
+default = "0.1 Ohm"
+min = 0
+description = "Output resistance (load regulation)"
+
+[[parameters]]
+name = "i_quiescent"
+type = "real"
+unit = "A"
+default = "50 uA"
+min = 0
+description = "Ground current"
+
+[[parameters]]
+name = "t_response"
+type = "real"
+unit = "s"
+default = "5 us"
+min = "1 ns"
+
+[model]
+kind = "behavioral"
+
+[[model.signals]]
+name = "v_set"
+expr = "max(min(v_out, V(vin, gnd) - v_dropout), 0)"
+tau = "{t_response}"
+unit = "V"
+
+[[model.outputs]]
+name = "regulator"
+source = "voltage"
+nodes = ["vout", "gnd"]
+expr = "v_set"
+r_out = "{r_out}"
+
+[[model.elements]]
+name = "Binput"
+type = "B"
+source = "current"
+nodes = ["vin", "gnd"]
+expr = "max(-I(regulator), 0) + i_quiescent"
+
+[[tests]]
+name = "regulation_100ma"
+description = "5 V in, 33 Ohm load: about 3.29 V out; input current = load current + 50 uA"
+analysis = "op"
+
+[[tests.elements]]
+name = "Rload"
+type = "R"
+nodes = ["vout", "gnd"]
+params = { r = "33 Ohm" }
+
+[[tests.stimulus]]
+name = "vin"
+nodes = ["vin", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(vout, gnd)"
+value = "3.29 V"
+abs_tol = "10 mV"
+
+[[tests.expect]]
+probe = "I(vin)"
+value = "99.8 mA"
+rel_tol = 0.01
+
+[[tests]]
+name = "dropout"
+description = "3.4 V in: output is 3.4 V - 0.3 V minus the drop on r_out"
+analysis = "op"
+
+[[tests.elements]]
+name = "Rload"
+type = "R"
+nodes = ["vout", "gnd"]
+params = { r = "33 Ohm" }
+
+[[tests.stimulus]]
+name = "vin"
+nodes = ["vin", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "3.4 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(vout, gnd)"
+value = "3.09 V"
+abs_tol = "10 mV"

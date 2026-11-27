@@ -1,0 +1,122 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_diode"
+name = "Small-signal silicon diode"
+version = "0.1.0"
+category = "semiconductor/diode"
+description = """
+Silicon junction diode with the SPICE diode equation, series resistance,
+junction capacitance, transit time and reverse breakdown. The defaults are
+round textbook numbers for a small-signal diode, not fitted to a product."""
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+tags = ["diode", "silicon"]
+
+[part.source]
+kind = "textbook"
+title = "Shockley diode equation with series resistance; round example values"
+
+[[pins]]
+name = "a"
+role = "analog"
+description = "Anode"
+
+[[pins]]
+name = "k"
+role = "analog"
+description = "Cathode"
+
+[[parameters]]
+name = "i_s"
+type = "real"
+unit = "A"
+default = "10e-15 A"
+min = "1e-30 A"
+description = "Saturation current"
+
+[[parameters]]
+name = "n_ideality"
+type = "real"
+unit = "1"
+default = 1.0
+min = 0.5
+max = 5
+description = "Emission coefficient"
+
+[[parameters]]
+name = "r_series"
+type = "real"
+unit = "Ohm"
+default = "1 Ohm"
+min = 0
+
+[[parameters]]
+name = "c_junction"
+type = "real"
+unit = "F"
+default = "2 pF"
+min = 0
+description = "Zero-bias junction capacitance"
+
+[[parameters]]
+name = "t_transit"
+type = "real"
+unit = "s"
+default = "5 ns"
+min = 0
+
+[[parameters]]
+name = "v_breakdown"
+type = "real"
+unit = "V"
+default = "100 V"
+min = "0.1 V"
+
+[model]
+kind = "primitive"
+element = "D"
+nodes = ["a", "k"]
+params = { is = "{i_s}", n = "{n_ideality}", rs = "{r_series}", cjo = "{c_junction}", tt = "{t_transit}", bv = "{v_breakdown}", ibv = "1 uA" }
+
+[[tests]]
+name = "forward_10ma"
+description = "Vf = n * Vt * ln(I / Is) + I * Rs = 0.716 V + 0.010 V at 27 degC"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "i1"
+nodes = ["0", "a"]
+source = "current"
+waveform = "dc"
+value = "10 mA"
+
+[[tests.stimulus]]
+name = "vk"
+nodes = ["k", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(a, k)"
+value = "0.726 V"
+abs_tol = "10 mV"
+
+[[tests]]
+name = "reverse_blocking"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["k", "a"]
+source = "voltage"
+waveform = "dc"
+value = "10 V"
+
+[[tests.expect]]
+probe = "I(k)"
+min = 0
+max = "1 nA"

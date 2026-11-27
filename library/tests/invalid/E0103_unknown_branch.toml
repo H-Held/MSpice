@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_test_load"
+name = "Test load"
+version = "0.1.0"
+category = "load/test"
+description = "Fixture for validator tests."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "vdd"
+role = "power"
+
+[[pins]]
+name = "gnd"
+role = "ground"
+
+[[pins]]
+name = "din"
+role = "input"
+
+[[parameters]]
+name = "i_idle"
+type = "real"
+unit = "A"
+default = "1 mA"
+
+[model]
+kind = "load"
+
+[[model.branches]]
+name = "supply"
+nodes = ["vdd", "gnd"]
+mode = "state_machine"
+value = "{i_idle}"
+
+[model.state_machine]
+initial = "idle"
+
+[[model.state_machine.variables]]
+name = "count"
+init = 0
+
+[[model.state_machine.inputs]]
+name = "din_level"
+expr = "V(din, gnd)"
+high = "2 V"
+low = "1 V"
+
+[[model.state_machine.states]]
+name = "idle"
+
+[[model.state_machine.states]]
+name = "busy"
+values = { suply = "{2 * i_idle}" }
+
+[[model.state_machine.transitions]]
+from = "idle"
+to = "busy"
+on = "rising(din_level)"
+actions = ["count = count + 1"]
+
+[[model.state_machine.transitions]]
+from = "busy"
+to = "idle"
+after = "10 us"
+
+[[tests]]
+name = "idle_current"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "vsup"
+nodes = ["vdd", "gnd"]
+source = "voltage"
+waveform = "dc"
+value = "5 V"
+
+[[tests.stimulus]]
+name = "vg"
+nodes = ["gnd", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(vdd)"
+value = "1 mA"
+rel_tol = 0.01

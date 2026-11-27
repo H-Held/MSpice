@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_quantities"
+name = "Quantity strings"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Quantity strings."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "length"
+type = "real"
+unit = "m"
+default = "5 m"
+description = "5 metres: a lone `m` after the number is the unit metre"
+
+[[parameters]]
+name = "freq"
+type = "real"
+unit = "Hz"
+default = "2.4 GHz"
+
+[model]
+kind = "subcircuit"
+
+[[model.elements]]
+name = "R1"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "10k" }
+
+[[model.elements]]
+name = "R2"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "2.2 MOhm" }
+
+[[model.elements]]
+name = "R3"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "470mOhm" }
+
+[[model.elements]]
+name = "C1"
+type = "C"
+nodes = ["p", "n"]
+params = { c = "4.7 µF" }
+
+[[model.elements]]
+name = "C2"
+type = "C"
+nodes = ["p", "n"]
+params = { c = "100 pF" }
+
+[[model.elements]]
+name = "C3"
+type = "C"
+nodes = ["p", "n"]
+params = { c = 1e-9 }
+
+[[model.elements]]
+name = "L1"
+type = "L"
+nodes = ["p", "n"]
+params = { l = "+1.5e-3 H" }
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

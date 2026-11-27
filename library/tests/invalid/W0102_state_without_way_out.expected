@@ -1,0 +1,4 @@
+code: W0102
+message: state `stuck` has no outgoing transition
+file: tests/invalid/W0102_state_without_way_out.toml
+line: 62

@@ -1,0 +1,4 @@
+code: E0011
+message: part id `generic_test_resistor` is already defined in `tests/invalid/E0011_duplicate_id/a.toml`
+file: tests/invalid/E0011_duplicate_id/b.toml
+line: 5

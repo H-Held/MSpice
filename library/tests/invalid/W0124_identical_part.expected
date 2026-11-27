@@ -1,0 +1,4 @@
+code: W0124
+message: part `generic_test_resistor` is identical in libraries `base` and `app`; it is used once
+file: tests/invalid/W0124_identical_part/parts/generic_test_resistor.toml
+line: 5

@@ -1,0 +1,4 @@
+code: E0022
+message: quality `datasheet` requires source.kind = "datasheet", "application_note" or "standard", source.vendor, source.revision, source.section
+file: tests/invalid/E0022_quality_datasheet.toml
+line: 12

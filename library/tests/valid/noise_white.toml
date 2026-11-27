@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_noise_white"
+name = "Noise white"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Noise white."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+
+[model]
+kind = "noise_source"
+
+[model.noise]
+type = "white"
+output = "voltage"
+nodes = ["p", "n"]
+density = "10 nV/sqrt(Hz)"
+bandwidth = "1 MHz"
+seed = 7
+
+[[tests]]
+name = "bounded"
+analysis = "tran"
+stop = "1 ms"
+
+[[tests.elements]]
+name = "Rl"
+type = "R"
+nodes = ["p", "n"]
+params = { r = "1 kOhm" }
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "V(p, n)"
+min = "-3 kV"
+max = "3 kV"

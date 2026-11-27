@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: CC-BY-4.0
+# Supply current and speed of a generic 12 V, 120 mm PC fan against PWM duty cycle.
+# Author estimate (shape typical for such fans: minimum speed at 0 % duty, roughly
+# linear above it). Not measured, not taken from a datasheet.
+duty,current,speed
+%,A,rpm
+0,0.040,500
+20,0.050,700
+40,0.080,1000
+60,0.120,1350
+80,0.170,1700
+100,0.220,2000

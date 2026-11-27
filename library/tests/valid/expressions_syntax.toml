@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: CC-BY-4.0
+format_version = "0.1"
+
+[part]
+id = "generic_valid_expressions"
+name = "Expression syntax"
+version = "0.1.0"
+category = "test/valid"
+description = "Positive test fixture: Expression syntax."
+author = "The MSpice Authors"
+license = "CC-BY-4.0"
+quality = "draft"
+
+[part.source]
+kind = "estimate"
+title = "Validator test fixture"
+
+[[pins]]
+name = "p"
+role = "analog"
+
+[[pins]]
+name = "n"
+role = "analog"
+
+[[parameters]]
+name = "x"
+type = "real"
+unit = "1"
+default = 0.5
+
+[model]
+kind = "behavioral"
+
+[[model.outputs]]
+name = "all_operators"
+source = "current"
+nodes = ["p", "n"]
+expr = "(V(p) > 0 && !(V(n) >= 1) || V(p, n) != 0) ? (2^3 ** 1 + -x * 1.5e-3 / 4.7k - 10meg * 1f) : (x == 1 ? 1p : 2n)"
+
+[[model.outputs]]
+name = "all_functions"
+source = "current"
+nodes = ["p", "n"]
+expr = "abs(x) + sqrt(1) + exp(0) + ln(1) + log(1) + log10(1) + sin(0) + cos(0) + tan(0) + asin(0) + acos(1) + atan(0) + sinh(0) + cosh(0) + tanh(0) + floor(0.5) + ceil(0.5) + round(0.5) + sgn(x) + u(x) + uramp(x) + atan2(0, 1) + pow(2, 2) + pwr(-2, 2) + min(1, 2, 3) + max(1, 2) + limit(x, 0, 1) + if(x, 1, 0) + time * temp * pi * 0 + 1u * 1m * 1k * 1g * 1t * 1MEG"
+
+[[tests]]
+name = "smoke"
+analysis = "op"
+
+[[tests.stimulus]]
+name = "v1"
+nodes = ["p", "n"]
+source = "voltage"
+waveform = "dc"
+value = "1 V"
+
+[[tests.stimulus]]
+name = "vn"
+nodes = ["n", "0"]
+source = "voltage"
+waveform = "dc"
+value = 0
+
+[[tests.expect]]
+probe = "I(p)"
+min = "-1 A"
+max = "1 A"

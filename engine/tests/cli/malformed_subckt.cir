@@ -1,0 +1,7 @@
+* Subcircuit without .ends
+V1 in 0 DC 1
+.subckt S a b
+R1 a b 1k
+X1 in 0 S
+.tran 1u 1m
+.end

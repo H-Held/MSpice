@@ -1,0 +1,5 @@
+* Resistor value that is not a number
+V1 in 0 DC 1
+R1 in 0 1x2k
+.tran 1u 1m
+.end

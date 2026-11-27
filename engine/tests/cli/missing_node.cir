@@ -1,0 +1,5 @@
+* Resistor with only one node
+V1 in 0 DC 1
+R1 in
+.tran 1u 1m
+.end

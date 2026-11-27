@@ -1,0 +1,5 @@
+* Source function without closing parenthesis
+V1 in 0 PULSE(0 5 1u 1u 1u 1m 2m
+R1 in 0 1k
+.tran 1u 1m
+.end

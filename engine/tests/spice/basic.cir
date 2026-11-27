@@ -1,0 +1,43 @@
+* Basic test: comments, continuation lines, parameters, subcircuits
+.PARAM RLOAD={2*rbase} ; forward reference to rbase
+.param rbase=1k
+V1 IN 0 DC 5 $ comment after a dollar sign
+R1 IN mid
+* comment between a line and its continuation
++ {rload}
+XA mid 0 out STAGE gain=3
+XB out 0 o2 STAGE
+Bout o3 0 V = v(out)*{rbase}/1k + time
+.model DX D(Is=1e-14 N=1.5)
+.subckt STAGE in gnd y params: gain=2 m=1
+.param g2={gain*2}
+Rin in gnd 10k
+E1 y gnd in gnd {g2}
+Vm y ym 0
+Bi ym gnd I='{m}*v(in,gnd)/1k + i(vm)*0'
+Xinner in loc INNER
+Rloc loc gnd 1
+Rg gnd 0 1
+.subckt INNER a b
+Dd a b DX
+.ends INNER
+.ends STAGE
+K1 L1 L2 0.9
+L1 o2 0 1u
+L2 o3 0 1u
+J1 a b c JMOD
+XC mid 0 out STAGE m=2 unknown=1
+XD mid 0 PLAIN m=3
+.subckt PLAIN a b
+Rp a b 1
+.ends
+.include "@INC@/part.inc"
+.lib "lib.lib" typ
+.tran 1u 1m
+.options reltol=1e-4
+.control
+run
+meas tran x avg v(out)
+.endc
+.end
+R_after_end a b 1

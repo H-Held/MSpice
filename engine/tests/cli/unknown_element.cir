@@ -1,0 +1,5 @@
+* Element letter Z is not a supported element
+V1 in 0 DC 1
+Z1 in 0 1k
+.tran 1u 1m
+.end

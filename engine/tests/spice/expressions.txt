@@ -1,0 +1,80 @@
+# Generic B/E/G source expressions for the parser, tape and gradient test.
+# One expression per line; '#' starts a comment. Parameter names get fixed values in the test.
+v(a)
+v(a,b)
+-v(a)
+v(a)*v(b)
+v(a)/(1+v(b)*v(b))
+v(a)+v(b)-v(c)
+2*v(a)-3*v(b)+0.5
+{gain}*v(in)
+{gain}*(v(inp)-v(inn))
+v(in)/{r1}
+(v(p)-v(n))/{rint}
+max(0, v(a)-0.7)
+min(v(a), 5)
+min(max(v(a),0),1)
+min(max(v(ctl)/5,0),1)*v(vin)
+max(v(a),v(b))
+abs(v(a)-v(b))
+sqrt(v(a)*v(a)+1e-6)
+0.5*(v(a)+sqrt(v(a)**2+1e-4))
+0.5*((v(a)-v(b))/{rdo}+sqrt(((v(a)-v(b))/{rdo})**2+1e-12))
+exp(v(a)/10)
+exp(-v(a)*v(a))
+ln(1+exp(v(a)))
+log(1+v(a)*v(a))
+log10(1+abs(v(a)))
+sin(v(a))
+cos(v(a)*2)
+tan(v(a)/30)
+atan(v(a))
+tanh(v(a)-v(b))
+tanh((v(in)-{vth})/0.01)
+0.5*(1+tanh((v(in)-{vth})/0.05))
+sinh(v(a)/10)
+cosh(v(a)/10)
+floor(v(a))*v(b)+ceil(v(c))
+v(a)**2
+v(a)^3
+pow(v(a),2)
+pow(abs(v(a))+1,0.5)
+pwr(v(a),1.5)
+pwr(v(a)+30,0.5)
+1/(1+exp(-(v(in)-{vth})/0.1))
+v(a)>v(b) ? 1 : 0
+v(a)>{vth} ? v(b) : 0
+v(in)<1 ? 0 : (v(in)>2 ? 1 : v(in)-1)
+(v(a)>1 && v(b)>1) ? 1 : 0
+(v(a)>1 || v(b)>1) ? 1 : 0
+!(v(a)>1) ? v(b) : v(c)
+v(a)==v(b) ? 1 : 2
+v(a)!=0 ? 1/(1+v(a)*v(a)) : 1
+u(v(a))
+u(v(a)-1)*v(b)
+uramp(v(a)-0.5)
+sgn(v(a))*v(a)*v(a)
+limit(v(a),0,5)
+limit(v(a)*{gain},-1,1)
+i(vsense)*{rshunt}
+i(vsense)*v(a)
+v(a)*(1e-9+min(max(v(c),0),1)/50)
+min(max((v(r)-v(p,n))/5m,0),2)
+min(max(({v0}-v(p,n))/{rint},0),{ilim})*min(max(v(on),0),1)
+v(vin)>8 ? {pmax}/v(vin) : {pmax}/8*max(v(vin),0)/8
+{k}*1e-3*pwr(0.2*(max((v(p,n)-{u0})/0.2,0)+ln(1+exp(-abs((v(p,n)-{u0})/0.2)))),1.1)
+(v(a)+v(b)+v(c)+v(d))/4
+v(a)*v(b)*v(c)*v(d)*v(e)/1000
+min(max(v(oe),0),1)*((v(a,gnd)>v(vcc,gnd)/2 ? v(vcc,gnd) : 0) - v(y,gnd))/25
+v(enl)*(v(vs)-v(y,gnd))/(100*pow(max(v(vcc,gnd),0.3),-1.5)+50)
+(1e-5 + (1e-4-1e-5)*min(1, v(ss)/{vref}))*(v(ss)-v(fb))
+time*v(a)
+1+0.5*u(time-1m)
+sin(2*pi*1k*time)*v(a)
+v(a)*exp(-time/1m)
+{a}+{b}*v(x)+{c}*v(x)**2
+({a}*v(x)+{b})/({c}*v(x)+2)
+max(0,(v(k,a)-1.24)*500)
+v(out)*1e-6
+temper/300*v(a)
+-(v(a)-v(b))**2+3

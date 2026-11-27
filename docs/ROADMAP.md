@@ -18,5 +18,5 @@ pass in CI on Windows and Linux. Design background: [design](design/2026-11-27-m
 | 10 Extras | Optional model encryption (documented as obfuscation), WebAssembly build for a browser demo | - |
 
 Carried over from the csim plan: the open speed tasks (V-list) and the SPICE
-import work (L1) move into stage 3. The old plan stays in the internal
-repository.
+import work (L1) move into stage 3. The open tasks of all stages, with
+acceptance criteria, are listed in [TASKS.md](TASKS.md).

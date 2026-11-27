@@ -87,7 +87,8 @@ the reference data of `RST-03`.
 | INT-06 | Mated connector model | 4 | open | INT-02, LIB-04, ENG-15 | V39 |
 | INT-07 | Automatic parasitic detection, crosstalk, windowed computation | 4 | open | INT-03, ENG-11 | V40 |
 | INT-08 | EMC near field from simulated currents | 4 | open | INT-03 | tickets 023, 024 |
-| SIL-01 | Emulator coupling through events and checkpoints | 7 | open | ENG-09, ENG-11 | V22 |
+| SIL-00 | Open co-simulation protocol (specification and conformance tests) | 7 | open | - | mspice-emu plan |
+| SIL-01 | Emulator coupling through events and checkpoints | 7 | open | SIL-00, ENG-09, ENG-11 | V22 |
 | MCU-01 | RMT peripheral model | 8 | open | SIL-01 | ticket 004 |
 | MCU-02 | MCPWM peripheral model | 8 | open | SIL-01 | ticket 005 |
 | MCU-03 | PCNT peripheral model with fan tachometer load | 8 | open | SIL-01, LIB-02 | ticket 006 |
@@ -787,6 +788,30 @@ measurement named here.
 
 ## Stage 7: firmware co-simulation
 
+### SIL-00 Open co-simulation protocol
+
+- **Goal.** One documented protocol between the engine and any firmware
+  endpoint (emulators in the separate GPL repository mspice-emu, other
+  emulators, hardware adapters), so that MSpice never links GPL code and
+  third parties can add endpoints under any licence.
+- **Scope.** Specification in `docs/protocol/`: transport (TCP on localhost,
+  Unix socket, Windows named pipe), framing (length-prefixed CBOR, JSON lines
+  for debugging), handshake with version and capabilities, pin map, time
+  model (the engine grants a horizon with `advance`; the endpoint never goes
+  back in time; the engine rolls back to its own snapshots as in SIL-01),
+  messages `edge`, `pwm`, `pulses`, `sample`/`value`, `uart`, optional
+  endpoint `checkpoint`/`restore`, `bye`. Conformance test suite usable by
+  both sides; a scripted fake endpoint for engine tests. Draft message set:
+  mspice-emu `docs/PLAN.md`.
+- **Acceptance.** Specification reviewed by both repositories; the fake
+  endpoint passes the conformance suite; the suite runs in CI.
+- **Tests.** Positive: handshake, each message type round trip. Negative:
+  wrong protocol version, unknown pin, time stamp before the granted
+  horizon start, malformed or oversized frame, endpoint silent past a
+  timeout (clear error, no hang).
+- **Depends on.** - (can be designed during the Rust migration so that the
+  engine API fits it).
+
 ### SIL-01 Emulator coupling through events and checkpoints
 
 - **Goal.** Firmware runs of a second or more next to the analog circuit,
@@ -803,7 +828,7 @@ measurement named here.
   channel runs end to end; rollbacks are counted in the report.
 - **Tests.** Negative: protocol line with unknown command; restore of an
   unknown snapshot; emulator process exits early (clear error, no hang).
-- **Depends on.** ENG-09 (threshold sensor), ENG-11.
+- **Depends on.** SIL-00, ENG-09 (threshold sensor), ENG-11.
 
 ---
 

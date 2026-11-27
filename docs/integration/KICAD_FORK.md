@@ -217,6 +217,59 @@ waveform at the failing time.
   edit and is listed in the chat; destructive actions ask for confirmation.
 - Works without any AI configured; the chat is optional.
 
+## 9a. Live activity: what the user does, seen by the AI
+
+Goal: the AI can follow what the user does (clicking parts, moving and
+rotating them, routing, editing values), comment on it when asked, and all of
+it can be logged.
+
+KiCad's IPC API has no event subscription (checked 2026-11-27: neither 10.0
+nor the development branch); clients can only ask. So there are three
+sources, used together:
+
+| Source | What it sees | Latency | Needs |
+|---|---|---|---|
+| IPC polling (`GetSelection`, `GetItems`, bounding boxes) | selection, position/rotation/layer changes, added and deleted items in the PCB | about 100-200 ms at 5-10 polls per second | KiCad 10 (PCB); schematic from KiCad 11 or the fork |
+| File watcher with a semantic diff of `.kicad_sch` / `.kicad_pcb` (and KiCad's autosave files) | every change in both editors, as "U3 moved 2.1 mm, R5 value 10k to 4k7" | on save or autosave | nothing, read-only |
+| Fork hook: event channel | every commit of KiCad's undo system and every selection change, in both editors, pushed immediately | immediate | small fork patch (subscribe call on the IPC socket), written to be offered upstream |
+
+All events go into one stream in `mspice-kicad`:
+
+```json
+{"t":"2026-11-27T14:03:11.204Z","editor":"pcb","kind":"move","ref":"U3","from":[102.1,55.0],"to":[104.2,55.0],"rot":[0,90],"by":"user"}
+{"t":"2026-11-27T14:03:15.880Z","editor":"sch","kind":"select","refs":["R5","C7"],"by":"user"}
+{"t":"2026-11-27T14:04:02.010Z","editor":"pcb","kind":"route","net":"VBUS","length_mm":12.4,"by":"ai"}
+```
+
+- **Log:** JSON lines in `<project>-mspice/activity/<date>.jsonl`, per
+  session; can be replayed, filtered and summarised ("what changed since the
+  last commit").
+- **Chat:** the panel shows the stream; the AI receives it as context only
+  while "watch" is switched on. In watch mode it reacts to events in batches
+  (for example every few seconds or on request), not to every mouse move, to
+  limit cost. Typical use: "you moved U3 away from L1, the switching loop got
+  4 mm longer".
+- **Privacy:** off by default, a visible indicator while recording, local files
+  only, pause button, retention period setting, nothing is sent to an AI
+  provider unless watch mode is on.
+- Changes made by the AI are marked `"by":"ai"` and appear in the same log.
+
+## 9b. Git from the editor and from the AI
+
+| Function | Behaviour |
+|---|---|
+| status, diff | diff of KiCad files shown semantically (parts moved, values changed, nets renamed), raw text diff on request |
+| commit | saves open documents first (PCB through IPC `SaveDocument`; schematic through the fork or asks the user), commit message proposed by the AI from the activity log, edited by the user |
+| pull | only with saved documents; afterwards the editors reload (`RevertDocument`); conflicts in KiCad files are reported per item, never auto-merged |
+| push | to the configured remote; no force-push from the GUI or the AI |
+| branch, switch, log | basic operations |
+
+- Implemented by calling the user's installed `git`, so SSH keys, credential
+  helpers and signing work as usual; no credentials stored by MSpice.
+- AI-initiated `commit`, `pull` and `push` always need a click from the user.
+- MCP tools: `git_status`, `git_diff`, `git_commit`, `git_pull`, `git_push`,
+  `git_log`, `git_branch`.
+
 ## 10. API and MCP tools
 
 The same functions are offered as JSON-RPC methods and as MCP tools:
@@ -233,6 +286,8 @@ The same functions are offered as JSON-RPC methods and as MCP tools:
 | Simulation | run, progress, stop, read waveform (decimated or full), measurements |
 | Tests | list, run, results |
 | Firmware | set firmware, build, start co-simulation |
+| Activity | start/stop watch, read event stream, read log, summarise changes since a commit |
+| Git | status, diff (semantic), commit, pull, push, log, branch |
 
 API versioning follows [VERSIONING.md](../VERSIONING.md); every response
 carries the API version.

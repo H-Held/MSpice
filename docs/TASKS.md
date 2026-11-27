@@ -58,7 +58,7 @@ elsewhere.
 | MSpice | RST-01..05, LIB-01..08, ENG-01..20, INT-01..09 (computation and file reading), SIL-00, SIL-01 (engine side) | V13, V15, V16, V17b, V18, V19, V20, V20a, V21, V24, V26, V27-3/4, V28a/b, V29, V30a, V30b (computation), V31, V33, V34, V35, V36, V37, V38, V39, V40, L1e/f, P2 |
 | mspice-emu | EMU-01..04 (formerly MCU-01..04), emulator side of SIL-01, stages E0-E6 | V22 (emulator side), tickets 004-007 |
 | mspice-studio | Display and editing of the results above: limit violations and traffic light (V30b), parasitics switch (V28, V40), progress and sweeps (V23), test runner (INT-09) | - |
-| KiCad fork / mspice-kicad | INT-10; in KiCad: choosing part limits as symbol fields (V30a), parasitics switch per net (V28), dock panel, AI chat | - |
+| KiCad fork / mspice-kicad | INT-10, INT-11, INT-12; in KiCad: choosing part limits as symbol fields (V30a), parasitics switch per net (V28), dock panel, AI chat | - |
 
 `mspice-kicad` (the separate process with API and MCP server, see
 [KICAD_FORK.md](integration/KICAD_FORK.md)) gets its own repository under the
@@ -111,6 +111,8 @@ MSpice licence once INT-10 starts; until then INT-10 is tracked here.
 | INT-08 | EMC near field from simulated currents | 4 | open | INT-03 | tickets 023, 024 |
 | INT-09 | Project sidecar file: off-board devices, probes, tests; `mspice test` | 4 | open | LIB-01, INT-01 | KiCad fork plan |
 | INT-10 | `mspice-kicad` process: KiCad IPC API client, JSON-RPC API, MCP server | 4 | open | INT-01, RST-04 | KiCad fork plan |
+| INT-11 | Live activity stream and log (selection, moves, edits; polling, file diff, fork event hook) | 4 | open | INT-10 | KiCad fork plan |
+| INT-12 | Git from the editor and the AI (semantic diff of KiCad files, commit, pull, push) | 4 | open | INT-10 | KiCad fork plan |
 | SIL-00 | Open co-simulation protocol (specification and conformance tests) | 7 | open | - | mspice-emu plan |
 | SIL-01 | Emulator coupling through events and checkpoints | 7 | open | SIL-00, ENG-09, ENG-11 | V22 |
 | MCU-01 | RMT peripheral model | 8 | moved | SIL-01 | ticket 004 |
@@ -856,6 +858,36 @@ measurement named here.
 - **Tests.** Negative: KiCad not running, unsupported KiCad API version,
   invalid tool arguments (exact error), edit rejected by KiCad.
 - **Depends on.** INT-01, RST-04.
+
+### INT-11 Live activity stream and log
+
+- **Goal.** The AI and the user can follow what happens in the editors, live
+  and afterwards. See [KICAD_FORK.md](integration/KICAD_FORK.md) section 9a.
+- **Scope.** Event model (select, move, rotate, add, delete, edit, route, by
+  user or AI), sources IPC polling, file watcher with semantic diff of KiCad
+  files, optional fork event hook; JSON-lines log; watch mode for the chat
+  with batching; privacy settings.
+- **Acceptance.** Moving a footprint in the PCB editor appears in the stream
+  within 300 ms (polling) and in the log with old and new position; a saved
+  schematic change appears as a semantic diff entry; recording off means no
+  file is written.
+- **Tests.** Negative: KiCad closed during recording (clean stop, message),
+  corrupt autosave file (skipped with warning), log folder not writable.
+- **Depends on.** INT-10.
+
+### INT-12 Git integration
+
+- **Goal.** Version control without leaving the editor, usable by the AI with
+  user confirmation. See [KICAD_FORK.md](integration/KICAD_FORK.md) section 9b.
+- **Scope.** Status, semantic diff, commit (with save first), pull (with
+  reload), push, log, branch, through the installed `git`; MCP tools.
+- **Acceptance.** Commit, pull and push work against a test remote; a pull
+  with a conflicting KiCad file reports the conflicting items and changes
+  nothing; AI-initiated push waits for confirmation.
+- **Tests.** Negative: unsaved documents on pull, no remote configured,
+  authentication failure (message from git passed through), force-push
+  request refused.
+- **Depends on.** INT-10.
 
 ---
 

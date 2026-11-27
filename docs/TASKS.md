@@ -55,14 +55,61 @@ elsewhere.
 
 | Repository | Tasks | Earlier labels |
 |---|---|---|
-| MSpice | RST-01..05, LIB-01..08, ENG-01..20, INT-01..09 (computation and file reading), SIL-00, SIL-01 (engine side) | V13, V15, V16, V17b, V18, V19, V20, V20a, V21, V24, V26, V27-3/4, V28a/b, V29, V30a, V30b (computation), V31, V33, V34, V35, V36, V37, V38, V39, V40, L1e/f, P2 |
+| MSpice | RST-01..05, LIB-01..08, ENG-01..20, INT-01..09 (computation and file reading), INT-14, SIL-00, SIL-01 (engine side) | V13, V15, V16, V17b, V18, V19, V20, V20a, V21, V24, V26, V27-3/4, V28a/b, V29, V30a, V30b (computation), V31, V33, V34, V35, V36, V37, V38, V39, V40, L1e/f, P2 |
 | mspice-emu | EMU-01..04 (formerly MCU-01..04), emulator side of SIL-01, stages E0-E6 | V22 (emulator side), tickets 004-007 |
 | mspice-studio | Display and editing of the results above: limit violations and traffic light (V30b), parasitics switch (V28, V40), progress and sweeps (V23), test runner (INT-09) | - |
-| KiCad fork / mspice-kicad | INT-10, INT-11, INT-12; in KiCad: choosing part limits as symbol fields (V30a), parasitics switch per net (V28), dock panel, AI chat | - |
+| KiCad fork / mspice-kicad | INT-10, INT-11 (event channel patch), INT-12, INT-13, INT-15; in KiCad: choosing part limits as symbol fields (V30a), parasitics switch per net (V28), dock panel, AI chat | - |
 
 `mspice-kicad` (the separate process with API and MCP server, see
 [KICAD_FORK.md](integration/KICAD_FORK.md)) gets its own repository under the
 MSpice licence once INT-10 starts; until then INT-10 is tracked here.
+
+## Earlier labels and where they went
+
+Open items of the earlier plan and the task that now covers them. Items that
+were already finished in the earlier plan (V0-V12, V14, V17a, V25 as a
+measured no-go, V27-1/2, V32) are part of the engine code taken over and
+need no task. V28c was replaced by V39.
+
+| Earlier label | Task in MSpice | Other repositories |
+|---|---|---|
+| F3 | ENG-11 | - |
+| L1 | ENG-06, ENG-08 | - |
+| L1e | ENG-07 | - |
+| L1f | ENG-08 | - |
+| P2 | ENG-07 | - |
+| V13 | ENG-20 | - |
+| V15 | ENG-09 | - |
+| V16 | ENG-20 | - |
+| V17b | ENG-20 | - |
+| V18 | ENG-20 | - |
+| V19 | ENG-14 | - |
+| V20 | ENG-13 | - |
+| V20a | ENG-12 | - |
+| V21 | ENG-20 | - |
+| V22 | SIL-01 | mspice-emu E0-E4, EMU-01..04 |
+| V23 | ENG-18 | mspice-studio (progress, sweeps) |
+| V24 | ENG-20 | - |
+| V26 | ENG-20 | - |
+| V27-3/4 | ENG-17 | - |
+| V28a | INT-03 | KiCad fork (switch per net), mspice-studio |
+| V28b | INT-04 | - |
+| V29 | ENG-10 | - |
+| V30a | LIB-03, ENG-15 | KiCad fork (limits as symbol fields) |
+| V30b | ENG-16 | mspice-studio, KiCad fork (traffic light display) |
+| V31 | ENG-02 | - |
+| V32 | ENG-18 | - |
+| V33 | ENG-10 | - |
+| V34 | ENG-01 | - |
+| V35 | ENG-05 | - |
+| V36 | ENG-03 | - |
+| V37 | INT-02 | - |
+| V38 | LIB-04, INT-05 | - |
+| V39 | LIB-04, INT-06 | - |
+| V40 | INT-07 | KiCad fork, mspice-studio (switch, display) |
+| tickets 004-007 | MCU-01..04 (moved) | mspice-emu EMU-01..04 |
+| tickets 023/024 | INT-04, INT-08 | - |
+| ticket 025 | INT-02 | - |
 
 ## Overview
 
@@ -111,7 +158,10 @@ MSpice licence once INT-10 starts; until then INT-10 is tracked here.
 | INT-08 | EMC near field from simulated currents | 4 | open | INT-03 | tickets 023, 024 |
 | INT-09 | Project sidecar file: off-board devices, probes, tests; `mspice test` | 4 | open | LIB-01, INT-01 | KiCad fork plan |
 | INT-10 | `mspice-kicad` process: KiCad IPC API client, JSON-RPC API, MCP server | 4 | open | INT-01, RST-04 | KiCad fork plan |
-| INT-11 | Live activity stream and log (selection, moves, edits; polling, file diff, fork event hook) | 4 | open | INT-10 | KiCad fork plan |
+| INT-11 | Event channel in the fork and activity log (fallbacks: polling, file diff) | 4 | open | INT-10 | KiCad fork plan |
+| INT-13 | Watch mode: user watches the AI edit live (follow view, narration, step mode, undo) | 4 | open | INT-10, INT-11 | KiCad fork plan |
+| INT-14 | Engine API specification (C ABI and JSON-RPC, versioned) | 4 | open | RST-04 | open questions |
+| INT-15 | Security of local servers (API, MCP): token authentication, edit permissions | 4 | open | INT-10 | open questions |
 | INT-12 | Git from the editor and the AI (semantic diff of KiCad files, commit, pull, push) | 4 | open | INT-10 | KiCad fork plan |
 | SIL-00 | Open co-simulation protocol (specification and conformance tests) | 7 | open | - | mspice-emu plan |
 | SIL-01 | Emulator coupling through events and checkpoints | 7 | open | SIL-00, ENG-09, ENG-11 | V22 |
@@ -859,26 +909,71 @@ measurement named here.
   invalid tool arguments (exact error), edit rejected by KiCad.
 - **Depends on.** INT-01, RST-04.
 
-### INT-11 Live activity stream and log
+### INT-11 Event channel and activity log
 
-- **Goal.** The AI and the user can follow what happens in the editors, live
-  and afterwards. See [KICAD_FORK.md](integration/KICAD_FORK.md) section 9a.
-- **Scope.** Event model (select, move, rotate, add, delete, edit, route, by
-  user or AI), sources IPC polling, file watcher with semantic diff of KiCad
-  files, optional fork event hook; JSON-lines log; watch mode for the chat
-  with batching; privacy settings.
-- **Acceptance.** Moving a footprint in the PCB editor appears in the stream
-  within 300 ms (polling) and in the log with old and new position; a saved
-  schematic change appears as a semantic diff entry; recording off means no
-  file is written.
-- **Tests.** Negative: KiCad closed during recording (clean stop, message),
-  corrupt autosave file (skipped with warning), log folder not writable.
+- **Goal.** Every change and selection in both editors, by the user or the
+  AI, as one live event stream and a log. See
+  [KICAD_FORK.md](integration/KICAD_FORK.md) section 9b.
+- **Scope.** Fork patch: subscribe call on the IPC socket, events from
+  KiCad's commit/undo system and selection changes, for schematic and PCB.
+  Fallbacks for unmodified KiCad: IPC polling, file watcher with semantic
+  diff. Event model, JSON-lines log, privacy settings.
+- **Acceptance.** With the fork, a footprint move or a symbol selection
+  appears in the stream within 50 ms; without the fork, a PCB move within
+  300 ms (polling) and a saved schematic change as a diff entry; recording
+  off means no file is written.
+- **Tests.** Negative: KiCad closed while subscribed (clean stop, message),
+  unsupported KiCad version (fallback chosen and reported), corrupt
+  autosave file (skipped with warning), log folder not writable.
+- **Depends on.** INT-10.
+
+### INT-13 Watch mode
+
+- **Goal.** The user watches the AI edit the design live and stays in
+  control. See [KICAD_FORK.md](integration/KICAD_FORK.md) section 9a.
+- **Scope.** One undoable commit per AI step, follow view (pan/zoom,
+  highlight), narration line per step in the chat, speed and step mode,
+  pause/stop, undo of all AI steps since a point, allowed area or nets,
+  before/after renders.
+- **Acceptance.** An AI routing task of 10 steps can be run in step mode,
+  stopped after step 4 and fully undone; every step is visible in the editor
+  and in the log with `"by":"ai"`.
+- **Tests.** Negative: edit outside the allowed area refused, locked item
+  refused, stop during a step leaves a consistent design.
+- **Depends on.** INT-10, INT-11.
+
+### INT-14 Engine API specification
+
+- **Goal.** A stable, versioned interface for front ends (studio,
+  mspice-kicad, third parties).
+- **Scope.** C ABI and JSON-RPC methods: load project/netlist/library, run,
+  progress, stop, read waveforms (decimated and full), measurements, tests,
+  co-simulation endpoint control. Versioning per [VERSIONING.md](VERSIONING.md).
+- **Acceptance.** Specification in `docs/api/`, implemented in Rust, every
+  method with a positive and a negative test, examples in two languages.
+- **Tests.** Negative: wrong API major version, unknown method, invalid
+  parameters (exact error), request after stop.
+- **Depends on.** RST-04.
+
+### INT-15 Security of local servers
+
+- **Goal.** No other program or website on the machine can use the API or
+  MCP server to edit designs, run git or start processes.
+- **Scope.** Bind to localhost or local sockets only; random access token per
+  session passed to trusted clients; check of the HTTP Origin header against
+  browser access; separate permission levels (read, simulate, edit, git);
+  edit and git actions from the AI require confirmation as in KiCad fork plan
+  sections 9a and 9c.
+- **Acceptance.** A request without token is refused; a request from a web
+  page origin is refused; read-only clients cannot edit.
+- **Tests.** Negative: missing or wrong token, foreign Origin, permission
+  level too low.
 - **Depends on.** INT-10.
 
 ### INT-12 Git integration
 
 - **Goal.** Version control without leaving the editor, usable by the AI with
-  user confirmation. See [KICAD_FORK.md](integration/KICAD_FORK.md) section 9b.
+  user confirmation. See [KICAD_FORK.md](integration/KICAD_FORK.md) section 9c.
 - **Scope.** Status, semantic diff, commit (with save first), pull (with
   reload), push, log, branch, through the installed `git`; MCP tools.
 - **Acceptance.** Commit, pull and push work against a test remote; a pull

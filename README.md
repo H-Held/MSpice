@@ -14,7 +14,7 @@ with an open part library format that people and language models can extend.
 |---|---|
 | [engine/](engine/) | Simulator core and the `mspice` command line tool |
 | [library/](library/) | Part library format, validator, generic parts, load models, guides |
-| [docs/](docs/) | Design notes, [roadmap](docs/ROADMAP.md), [tasks](docs/TASKS.md), [versioning](docs/VERSIONING.md) |
+| [docs/](docs/) | Design notes, [roadmap](docs/ROADMAP.md), [tasks](docs/TASKS.md), [open questions](docs/OPEN_QUESTIONS.md), [versioning](docs/VERSIONING.md) |
 
 Related repositories: [mspice-studio](https://github.com/H-Held/mspice-studio) (GUI, planned),
 [mspice-emu](https://github.com/H-Held/mspice-emu) (firmware in the loop, planned).

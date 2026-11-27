@@ -59,6 +59,10 @@ the reference data of `RST-03`.
 | LIB-02 | Loads, state machines and noise sources in the engine | 2 | open | LIB-01 | roadmap |
 | LIB-03 | Pin-pair limits and derating in the part format | 1 | open | - | V30a |
 | LIB-04 | Connector and cable part kinds | 1 | open | - | V38, V39 |
+| LIB-05 | Generic loads: lamp, pump, hub/PMSM/induction motors, solenoid, heater | 2 | open | LIB-01, LIB-02 | catalogue plan |
+| LIB-06 | Generic sources and storage: batteries by chemistry, supercapacitor, solar panel, wind turbine, hub generator, mains, lab supply | 2 | open | LIB-01, LIB-02 | catalogue plan |
+| LIB-07 | Interference sources: surge, ESD, fast transients; external magnetic field sources | 2 | open | LIB-02 (fields: INT-04) | catalogue plan |
+| LIB-08 | Stimulus modes for driving quantities and shipped profiles | 2 | open | LIB-01 | catalogue plan |
 | ENG-01 | Newton robustness: pn-junction limiting and gmin to ground | 3 | open | - | V34 |
 | ENG-02 | Operating-point start with switchable start modes | 3 | open | ENG-01 | V31 |
 | ENG-03 | Step-count limit and error messages | 3 | open | - | V36 |
@@ -87,6 +91,8 @@ the reference data of `RST-03`.
 | INT-06 | Mated connector model | 4 | open | INT-02, LIB-04, ENG-15 | V39 |
 | INT-07 | Automatic parasitic detection, crosstalk, windowed computation | 4 | open | INT-03, ENG-11 | V40 |
 | INT-08 | EMC near field from simulated currents | 4 | open | INT-03 | tickets 023, 024 |
+| INT-09 | Project sidecar file: off-board devices, probes, tests; `mspice test` | 4 | open | LIB-01, INT-01 | KiCad fork plan |
+| INT-10 | `mspice-kicad` process: KiCad IPC API client, JSON-RPC API, MCP server | 4 | open | INT-01, RST-04 | KiCad fork plan |
 | SIL-00 | Open co-simulation protocol (specification and conformance tests) | 7 | open | - | mspice-emu plan |
 | SIL-01 | Emulator coupling through events and checkpoints | 7 | open | SIL-00, ENG-09, ENG-11 | V22 |
 | MCU-01 | RMT peripheral model | 8 | open | SIL-01 | ticket 004 |
@@ -170,6 +176,24 @@ the reference data of `RST-03`.
   with equal priority, negative inductance, coaxial cable with inner
   diameter >= outer diameter.
 - **Depends on.** -
+
+---
+
+### LIB-05 to LIB-08 Catalogue extension
+
+- **Goal.** The generic loads, sources, storage devices and interference
+  sources listed in [library/docs/CATALOG_PLAN.md](../library/docs/CATALOG_PLAN.md),
+  each usable any number of times per project with adjustable parameters.
+- **Scope.** One part file per entry, with stimulus modes (LIB-08:
+  constant, steps, ramp, curve, sine, profile, random) for driving
+  quantities and switchable features. Field sources (LIB-07) need INT-04 for
+  coupling into board loops.
+- **Acceptance.** As listed under "Acceptance (per part)" in the catalogue
+  plan; every part has at least one engine-simulated reference test per
+  supported stimulus mode.
+- **Tests.** Negative: out-of-range parameter, missing profile file, feature
+  dependency not met, stimulus mode not supported by the quantity.
+- **Depends on.** LIB-01, LIB-02.
 
 ---
 
@@ -783,6 +807,37 @@ measurement named here.
 - **Tests.** Negative: run without the requested current probes; height
   below the board surface; time window outside the run.
 - **Depends on.** INT-03; INT-04 for the PEEC mode.
+
+---
+
+### INT-09 Project sidecar file and `mspice test`
+
+- **Goal.** Off-board devices, probes, stimulus profiles and test definitions
+  per project, without touching KiCad files.
+- **Scope.** `<project>.mspice.toml` format (schema, validator codes),
+  attaching devices to connector pins, `[[tests]]` with expectations,
+  `mspice test` CLI with JSON output. See [KICAD_FORK.md](integration/KICAD_FORK.md)
+  sections 4 and 8.
+- **Acceptance.** Example project with a battery, a fan and an LED strip on
+  connectors runs; tests report measured values; KiCad files unchanged (hash
+  check before and after).
+- **Tests.** Negative: unknown connector pin, device pin left open, test with
+  an unknown probe, expectation without tolerance.
+- **Depends on.** LIB-01, INT-01.
+
+### INT-10 `mspice-kicad` process with API and MCP server
+
+- **Goal.** One process that connects KiCad (IPC API), MSpice and AI clients.
+- **Scope.** As in [KICAD_FORK.md](integration/KICAD_FORK.md) sections 3 and
+  10: project model, netlist builder, JSON-RPC API, MCP server (stdio and
+  HTTP) with read, simulate, render, check and edit tools; edits only through
+  the KiCad IPC API.
+- **Acceptance.** An MCP client can open a project, run a simulation, read a
+  waveform, run DRC and get a board render; each tool has a test against a
+  recorded KiCad IPC session.
+- **Tests.** Negative: KiCad not running, unsupported KiCad API version,
+  invalid tool arguments (exact error), edit rejected by KiCad.
+- **Depends on.** INT-01, RST-04.
 
 ---
 

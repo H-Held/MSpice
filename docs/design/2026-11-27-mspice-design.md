@@ -32,7 +32,7 @@ for it.
 2. Library (`library/`): an open part library format, a validator with good
    error messages, generic standard parts, configurable loads (consumers), and
    guides for creating parts.
-3. Studio (`studio/`): a separate, modern GUI (later; native Rust, not Python).
+3. Studio: a separate, modern GUI in its own repository `mspice-studio` (Rust).
 4. Tests everywhere: every feature has positive tests (valid input, expected
    result) and negative tests (invalid input, exact expected error).
 5. Documentation that a newcomer can follow without asking.
@@ -81,7 +81,6 @@ Research notes with sources: [licensing-research.md](licensing-research.md).
 MSpice/
   engine/     C++ core library, CLI `mspice`, tests, benchmarks
   library/    format spec, schema, validator, generic parts, loads, guides
-  studio/     GUI (placeholder until stage 6)
   docs/       design, roadmap, user and developer documentation
 ```
 

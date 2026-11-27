@@ -43,6 +43,22 @@ Most features do not need to live inside KiCad's code:
 - Result: a new KiCad version usually means rebasing a few patches; the
   external process keeps working as long as the IPC API is compatible.
 
+### Upgrade procedure for a new major version (example: 10 to 11)
+
+| Part | How it is kept up to date |
+|---|---|
+| Fork | One branch per KiCad major version: `mspice/10.0` is based on the tag `10.0.x`. For 11: create `mspice/11.0` with `git rebase --onto 11.0.0 10.0.<last> mspice/10.0`, fix conflicts, run CI. |
+| Own code in the fork | Lives in its own directory (`mspice/`) with its own CMake subdirectory; it only uses public KiCad classes. |
+| Hooks into KiCad code | Kept to a few touch points (panel registration, menu entries, missing IPC calls), each listed in `PATCHES.md` with file, reason and upstream status. Only these can conflict. |
+| `mspice-kicad` | Talks to KiCad through the IPC API only. A thin adapter per KiCad major version (`kicad_ipc::v10`, `v11`) and a capability check at start-up; unknown versions get a clear message instead of wrong behaviour. |
+| Stored data | Unaffected: MSpice never writes KiCad files; symbol fields `Sim.*` and the sidecar file are independent of the KiCad file format version. |
+| Early warning | CI builds the fork against KiCad's development branch every night, so changes for the next major version show up months before its release (KiCad publishes release candidates first). |
+| Support policy | The current KiCad major version and the one before it. |
+
+Expected effort per major version: rebasing the hook commits and adapting the
+IPC adapter, typically days rather than weeks, provided the hook list stays
+short and missing IPC calls are contributed upstream.
+
 ## 3. Architecture
 
 ```

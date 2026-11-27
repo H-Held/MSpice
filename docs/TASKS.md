@@ -13,7 +13,8 @@ This is the open work list of MSpice. It refines the stages of the
 - **Origin.** The column "origin" names the label the task had in the earlier
   plan of the simulator this project grew out of (for example `V34`, `L1e`).
   It is only kept so that older commit messages can be traced.
-- **Status.** One of `open`, `in progress`, `done`, `deferred`, `dropped`.
+- **Status.** One of `open`, `in progress`, `done`, `deferred`, `dropped`,
+  `moved` (tracked in another repository, see "Repository split").
   Change the status in the overview table in the same pull request that
   changes the work. A task is `done` only when every acceptance criterion
   passes in CI and the tests named under "Tests" exist.
@@ -45,6 +46,23 @@ described in [RUST_MIGRATION.md](RUST_MIGRATION.md) and tracked here as
 `RST-01` to `RST-05`. All tasks below are implemented in Rust once `RST-04` is
 done; until then the C++ code only receives fixes that are needed to produce
 the reference data of `RST-03`.
+
+## Repository split
+
+Tasks are implemented in the repository that owns the code. The engine side
+of every feature stays in MSpice; user interfaces and GPL-dependent parts live
+elsewhere.
+
+| Repository | Tasks | Earlier labels |
+|---|---|---|
+| MSpice | RST-01..05, LIB-01..08, ENG-01..20, INT-01..09 (computation and file reading), SIL-00, SIL-01 (engine side) | V13, V15, V16, V17b, V18, V19, V20, V20a, V21, V24, V26, V27-3/4, V28a/b, V29, V30a, V30b (computation), V31, V33, V34, V35, V36, V37, V38, V39, V40, L1e/f, P2 |
+| mspice-emu | EMU-01..04 (formerly MCU-01..04), emulator side of SIL-01, stages E0-E6 | V22 (emulator side), tickets 004-007 |
+| mspice-studio | Display and editing of the results above: limit violations and traffic light (V30b), parasitics switch (V28, V40), progress and sweeps (V23), test runner (INT-09) | - |
+| KiCad fork / mspice-kicad | INT-10; in KiCad: choosing part limits as symbol fields (V30a), parasitics switch per net (V28), dock panel, AI chat | - |
+
+`mspice-kicad` (the separate process with API and MCP server, see
+[KICAD_FORK.md](integration/KICAD_FORK.md)) gets its own repository under the
+MSpice licence once INT-10 starts; until then INT-10 is tracked here.
 
 ## Overview
 
@@ -95,10 +113,10 @@ the reference data of `RST-03`.
 | INT-10 | `mspice-kicad` process: KiCad IPC API client, JSON-RPC API, MCP server | 4 | open | INT-01, RST-04 | KiCad fork plan |
 | SIL-00 | Open co-simulation protocol (specification and conformance tests) | 7 | open | - | mspice-emu plan |
 | SIL-01 | Emulator coupling through events and checkpoints | 7 | open | SIL-00, ENG-09, ENG-11 | V22 |
-| MCU-01 | RMT peripheral model | 8 | open | SIL-01 | ticket 004 |
-| MCU-02 | MCPWM peripheral model | 8 | open | SIL-01 | ticket 005 |
-| MCU-03 | PCNT peripheral model with fan tachometer load | 8 | open | SIL-01, LIB-02 | ticket 006 |
-| MCU-04 | SAR ADC peripheral model | 8 | open | SIL-01 | ticket 007 |
+| MCU-01 | RMT peripheral model | 8 | moved | SIL-01 | ticket 004 |
+| MCU-02 | MCPWM peripheral model | 8 | moved | SIL-01 | ticket 005 |
+| MCU-03 | PCNT peripheral model with fan tachometer load | 8 | moved | SIL-01, LIB-02 | ticket 006 |
+| MCU-04 | SAR ADC peripheral model | 8 | moved | SIL-01 | ticket 007 |
 
 ---
 
@@ -889,58 +907,6 @@ measurement named here.
 
 ## Stage 8: microcontroller peripheral models
 
-The models run on the emulator side of SIL-01 and exchange pin events and
-analog values with the engine. A shared test firmware reports one result
-line per peripheral (`PERIPH <name> PASS|FAIL <values>`); a missing firmware
-build counts as a failed test, not as skipped.
-
-### MCU-01 RMT peripheral model
-
-- **Goal.** Remote-control/pulse peripheral used for addressable LEDs and
-  1-Wire.
-- **Scope.** Transmit and receive channels, pulse memory with refill,
-  carrier, idle level; pin events to the engine.
-- **Acceptance.** A 1-Wire temperature sensor load (LIB-02) is read: ROM and
-  scratchpad, 96 of 96 bits correct, with memory refill. Addressable LED
-  frame timing within the datasheet tolerance of the generic RGB LED part.
-- **Tests.** Negative: buffer underrun is reported; unsupported register
-  write gives a logged error.
-- **Depends on.** SIL-01.
-
-### MCU-02 MCPWM peripheral model
-
-- **Goal.** Motor-control PWM for fans, motors and power stages.
-- **Scope.** Timers, operators, comparators, dead time, output inversion,
-  synchronisation.
-- **Acceptance.** A firmware driving a 4-pin fan at 25 kHz: frequency and
-  duty cycle at the pin within one timer tick; dead time and inversion
-  checked.
-- **Tests.** Negative: dead time longer than the period is reported.
-- **Depends on.** SIL-01.
-
-### MCU-03 PCNT peripheral model with fan tachometer load
-
-- **Goal.** Pulse counter for fan speed measurement.
-- **Scope.** Counter, edge modes (rising, falling, both), glitch filter,
-  thresholds with interrupt flag, 16-bit signed wrap with overflow flag.
-  The tachometer pulses come from the generic 4-pin fan load (duty to speed,
-  pulses per revolution from its part file).
-- **Acceptance.** Firmware reports speed at two or more speeds in 0 to
-  3000 rpm with a deviation <= 2 % from the load model; the measurement
-  window holds at least 100 pulses so that the +-1 pulse count error stays
-  at 1 %.
-- **Tests.** Positive: edge modes, filter, threshold. Negative and edge
-  cases: pulse shorter than the filter time is not counted; counter
-  overflow wraps and sets the flag; duty 0 % gives speed 0 and no error.
-- **Depends on.** SIL-01, LIB-02.
-
-### MCU-04 SAR ADC peripheral model
-
-- **Goal.** Firmware reads analog node voltages from the engine.
-- **Scope.** One-shot and continuous conversion, attenuation settings,
-  calibration, coupling to an engine node as synchronisation point (SIL-01).
-- **Acceptance.** Firmware readings of known node voltages across the input
-  range within +-2 LSB after calibration.
-- **Tests.** Negative: channel without mapped node is reported; input above
-  the range saturates and is flagged.
-- **Depends on.** SIL-01.
+Moved to the [mspice-emu](https://github.com/H-Held/mspice-emu) repository
+(`docs/PLAN.md`, tasks EMU-01 to EMU-04), because the peripheral models run on
+the emulator side, which is GPL-licensed.

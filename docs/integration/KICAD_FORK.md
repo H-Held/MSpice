@@ -43,6 +43,39 @@ Most features do not need to live inside KiCad's code:
 - Result: a new KiCad version usually means rebasing a few patches; the
   external process keeps working as long as the IPC API is compatible.
 
+### IPC coverage for schematic and PCB, and rendering images
+
+Checked on 2026-11-27 against the API definitions in KiCad's repository
+(`api/proto/`) and a local KiCad 10.0.6 installation:
+
+| | KiCad 10.0 (current release) | KiCad development branch (future 11) |
+|---|---|---|
+| PCB editing | Full: `GetItems`, `CreateItems`, `UpdateItems`, `DeleteItems`, commits (undoable), selection, hit test, `SaveCopyOfDocument`, `SaveDocumentToString` | same, plus board rules and tasks |
+| Schematic | Data types only; `schematic_commands.proto` contains no commands | `GetSchematicHierarchy`, `GetSchematicNetlist`, `PlaceSymbolFromLibrary`, schematic rules and tasks |
+| Images through IPC | none | Jobs: `RunSchematicJobExportSvg/Pdf/Png`, `RunBoardJobExportSvg/Png/Pdf`, `RunBoardJobExportRender` (3D) |
+| Images through `kicad-cli` | `sch export svg/pdf`, `pcb export svg/pdf` (per layer), `pcb render` (3D view to PNG/JPEG: side, zoom, rotation, quality) | same |
+
+Plan, so that a model can see both the schematic and the routing:
+
+1. **KiCad 10 path (works now):** `mspice-kicad` asks the PCB editor for a
+   copy of the open board (`SaveCopyOfDocument` to a temporary folder), then
+   calls `kicad-cli pcb export svg` (chosen layers, for routing) or
+   `kicad-cli pcb render` (3D). For the schematic it uses the saved file with
+   `kicad-cli sch export svg`, and reads its content read-only. SVG is turned
+   into PNG inside `mspice-kicad` (`resvg`, permissive licence). The user's
+   files are never written.
+2. **Fork on KiCad 10:** cherry-pick the upstream schematic commands and the
+   export jobs from KiCad's development branch into `mspice/10.0`. Then the
+   live, unsaved schematic and board can be read and rendered through IPC.
+   These patches disappear again when the fork moves to KiCad 11, because
+   they are upstream code.
+3. **KiCad 11 path:** use the IPC jobs directly; the `kicad-cli` path stays as
+   a fallback for headless use and CI.
+
+MCP tools built on this: `render_schematic(sheet, format)`,
+`render_board_layers(layers, area, scale)`, `render_board_3d(side, rotation,
+zoom)`, each returning an image plus the KiCad version and path used.
+
 ### Upgrade procedure for a new major version (example: 10 to 11)
 
 | Part | How it is kept up to date |

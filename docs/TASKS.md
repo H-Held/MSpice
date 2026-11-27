@@ -3,7 +3,8 @@
 This is the open work list of MSpice. It refines the stages of the
 [roadmap](ROADMAP.md) into tasks with measurable acceptance criteria.
 
-- **IDs.** Each task has a neutral ID with a prefix for its area: `ENG`
+- **IDs.** Each task has a neutral ID with a prefix for its area: `RST`
+  (Rust migration), `ENG`
   (engine), `LIB` (part library), `INT` (integration: KiCad, PCB, assembly),
   `SIL` (firmware co-simulation), `MCU` (microcontroller peripheral models).
   IDs are never reused; a dropped task keeps its ID with status `dropped`.
@@ -36,10 +37,24 @@ before the run; junction and diffusion charges of diodes and BJTs; the
 SPICE-like Newton profile (iteration limit, step cut, predictor) in
 `mspice run`.
 
+## Priority: Rust migration first
+
+The engine and the library validator are being rewritten in Rust before any
+other task is started (decision of the maintainers, 2026-11-27). The phases are
+described in [RUST_MIGRATION.md](RUST_MIGRATION.md) and tracked here as
+`RST-01` to `RST-05`. All tasks below are implemented in Rust once `RST-04` is
+done; until then the C++ code only receives fixes that are needed to produce
+the reference data of `RST-03`.
+
 ## Overview
 
 | ID | Title | Stage | Status | Depends on | Origin |
 |---|---|---|---|---|---|
+| RST-01 | Cargo workspace, CI, licence check of dependencies (phase R0) | 0 | open | - | Rust plan |
+| RST-02 | Library validator in Rust, byte-identical output (phase R1) | 0 | open | RST-01 | Rust plan |
+| RST-03 | Golden reference data from the C++ engine (phase R2) | 0 | open | RST-01 | Rust plan |
+| RST-04 | Engine, SPICE import and CLI in Rust, same results and speed (phase R3), C++ removed (phase R4) | 0 | open | RST-02, RST-03 | Rust plan |
+| RST-05 | Continue with the tasks below in Rust (phase R5) | 0 | open | RST-04 | Rust plan |
 | LIB-01 | Engine instantiates library parts and runs their reference tests | 2 | open | - | roadmap |
 | LIB-02 | Loads, state machines and noise sources in the engine | 2 | open | LIB-01 | roadmap |
 | LIB-03 | Pin-pair limits and derating in the part format | 1 | open | - | V30a |

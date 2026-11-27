@@ -6,6 +6,7 @@ pass in CI on Windows and Linux. Design background: [design](design/2026-11-27-m
 | Stage | Content | Acceptance |
 |---|---|---|
 | 0 Foundation | Repository without old history, licences, README, CONTRIBUTING with DCO, CI on Windows and Linux. Engine taken over from `csim` without vendor-derived models and project data. | Engine builds on both platforms, all tests green, licence audit clean |
+| 0b Rust migration (first) | Rewrite engine and validator in Rust, see [RUST_MIGRATION.md](RUST_MIGRATION.md) | Same results as the C++ reference, at least the same speed, C++ code removed |
 | 1 Library format | TOML format spec and schema, validator with error codes and `explain`, JSON diagnostics, generic standard parts (`generic_*`), merging libraries, features that can be switched on and off, guides for agents (datasheet to part, openly licensed SPICE model to part) | Every rule of the spec has a positive and a negative test |
 | 2 Loads | Consumers with fixed value, CSV curve, formula or state machine, any pin count. Examples: addressable RGB LED, 1-Wire temperature sensor, 4-pin fan, DC/BLDC/stepper motor, LED strip. Noise and interference sources | Each example simulates against its reference curve |
 | 3 Engine | Live progress (`--progress=json`), multi-core sweeps and Monte Carlo, fault injection (open, short, tolerance), SPICE netlist import, speed work carried over from csim (Newton, predictor, step control, pattern cache) | Benchmarks recorded per release; import lists every unsupported construct |

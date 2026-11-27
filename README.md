@@ -1,12 +1,12 @@
 # MSpice
 
 MSpice is a circuit simulator for transient analysis of board-level
-electronics. It runs from the command line on Windows and Linux, is written in
-C++20, and comes with an open part library format that people and language
-models can extend.
+electronics. It runs from the command line on Windows and Linux and comes
+with an open part library format that people and language models can extend.
 
-> Status: early. The engine is being moved over from an internal research
-> project. Interfaces and file formats will change before version 1.0.
+> Status: early. The engine was taken over from an internal research project
+> in C++ and is being rewritten in Rust ([plan](docs/RUST_MIGRATION.md)).
+> Interfaces and file formats will change before version 1.0.
 
 ## What is in this repository
 
@@ -19,7 +19,7 @@ models can extend.
 
 ## Building
 
-Requirements: CMake 3.21 or newer, Ninja, a C++20 compiler (GCC 12+, Clang 15+
+Current C++ reference build. Requirements: CMake 3.21 or newer, Ninja, a C++20 compiler (GCC 12+, Clang 15+
 or MSVC 2022).
 
 ```sh
